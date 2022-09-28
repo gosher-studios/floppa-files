@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Floppa Files</title>
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="stylesheet" href="tw.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Roboto+Mono&display=swap" />
+    <script src="https://kit.fontawesome.com/ea5efe8481.js" crossorigin="anonymous"></script>
+  </head>
+  <body class="bg-bg text-text font-mono text-xl flex justify-center">
+    <div class="p-8 w-full lg:w-[1024px] space-y-8">
+      <h1 class="text-8xl font-display text-white text-center">Floppa Files</h1>
+      <div class="bg-fg p-4 rounded-md relative" id="list">
+        <span class="text-white"># Upload files with curl:</span><br/>
+        $ curl {{base_url}}/up/example.txt --data-binary @example.txt<br/><br/>
+        <span class="text-white"># Or upload online:</span><br/>
+        <input type="file" id="file" class="hidden"></input>
+        <label for="file" class="underline cursor-pointer">Select file</label>
+      </div>
+      <div class="bg-fg p-4 rounded-md">
+        <span class="text-white"># Info:</span><br/>
+        <i class="fa-solid fa-file"></i> {{max_size}} max file size.<br/>
+        <i class="fa-solid fa-calendar-days"></i> Files kept forever.<br/>
+        <i class="fa-solid fa-tag"></i> Always Free.<br/>
+        <i class="fa-solid fa-database"></i> {{files}} files uploaded so far, totalling {{size}}.
+      </div>
+    </div>
+    <img class="fixed bottom-0 right-0 lg:w-[480px]" src="{{img}}.png" alt="" />
+    <p class="fixed bottom-2 left-2" >
+      v{{version}}<br/>
+      <i class="fa-brands fa-github"></i> <a href="https://github.com" target="_blank" class="underline">View on GitHub</a>
+    </p>
+    <script>
+      document.getElementById("file").onchange = async (e) => {
+        let file = e.target.files[0];
+        document.getElementById("list").innerHTML += "<br/><span>Uploading "+file.name+".</span>";
+        let response = await fetch("/up/"+file.name, {
+          method: "POST",
+          body: file,
+        });
+        let url = await response.text();
+        document.getElementById("list").lastChild.innerHTML = "<a href="+url+" target=\"_blank\" class=\"underline\">"+url+"</a>";
+      }
+    </script>
+  </body>
+</html>
