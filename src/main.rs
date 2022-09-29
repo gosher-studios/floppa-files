@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
 
   let mut hb = Handlebars::new();
   let mut data = BTreeMap::new();
-  data.insert("max_size",format_size(CONFIG.max_size,DECIMAL));
+  data.insert("max_size", format_size(CONFIG.max_size, DECIMAL));
   data.insert("base_url", CONFIG.base_url.to_string());
   data.insert("version", env!("CARGO_PKG_VERSION").to_string());
   hb.register_template_string("index", include_str!("index.hbs"))?;
@@ -61,13 +61,13 @@ async fn main() -> Result<()> {
   let page = warp::path::end().map(move || {
     let mut data = data.clone();
     data.insert("img", rand::thread_rng().gen_range(1..=4).to_string());
-    let (mut files,mut size) = (0,0);
+    let (mut files, mut size) = (0, 0);
     for file in fs::read_dir(CONFIG.files_dir).unwrap() {
-      files+=1;
-      size+=file.unwrap().metadata().unwrap().len();
+      files += 1;
+      size += file.unwrap().metadata().unwrap().len();
     }
     data.insert("files", files.to_string());
-    data.insert("size", format_size(size,DECIMAL));
+    data.insert("size", format_size(size, DECIMAL));
     warp::reply::html(hb.render("index", &data).unwrap())
   });
   let down = warp::fs::dir(CONFIG.files_dir);

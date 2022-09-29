@@ -8,7 +8,7 @@ module.exports = {
       "white": "#fff"
     },
     fontFamily: {
-      "display": ["Patrick Hand", "sans-serif"],
+      "display": ["Poppins", "sans-serif"],
       "mono": ["Roboto Mono", "monospace"],
     },
   },
