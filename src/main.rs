@@ -83,7 +83,7 @@ async fn main() -> Result<()> {
     .with(warp::log("info"));
 
   warp::serve(routes)
-    .run(SocketAddrV4::new(Ipv4Addr::LOCALHOST, CONFIG.port))
+    .run(SocketAddrV4::new(Ipv4Addr::new(188,166,13,139), CONFIG.port))
     .await;
   Ok(())
 }
