@@ -14,11 +14,14 @@
     <div class="p-6 w-full lg:w-[1024px] space-y-4">
       <h1 class="text-5xl md:text-7xl font-display text-white text-center">Floppa Files</h1>
       <div class="bg-fg p-2 md:p-4 rounded-md" id="list">
-        <span class="text-white"># Upload files with curl:</span><br/>
-	<span class="sm:block hidden">$ curl {{base_url}}/up/example.txt --data-binary @example.txt</span><br/><br/>
-        <span class="text-white sm:block hidden"># Or upload online:</span><br/>
+        <span class="text-white hidden sm:inline"># Upload files with curl:<br/></span>
+	    <span class="hidden sm:inline">$ curl {{base_url}}/up/example.txt --data-binary @example.txt<br/><br/></span>
+        <span class="text-white hidden sm:inline"># Or upload online:<br/></span>
         <input type="file" id="file" class="hidden"></input>
-        <label for="file" class="underline cursor-pointer">Select file <i class="fa-solid fa-file-arrow-up "></i></label>
+        <div class="text-4xl p-2 sm:text-base sm:p-0">
+          <i class="fa-solid fa-file-arrow-up"></i>
+          <label for="file" class="underline cursor-pointer">Select file</label>
+        </div>
       </div>
       <div class="bg-fg p-2 md:p-4 rounded-md">
         <span class="text-white"># Info:</span><br/>
@@ -31,7 +34,7 @@
     <img class="fixed bottom-0 right-0 w-[160px] md:w-[320px]" src="{{img}}.png" alt="" />
     <p class="fixed bottom-2 left-2 text-sm md:text-base" >
       v{{version}}<br/>
-      <i class="fa-brands fa-github"></i> <a href="https://github.com" target="_blank" class="underline">View on GitHub</a>
+      <i class="fa-brands fa-github"></i> <a href="https://github.com/gosher-studios/floppa-files" target="_blank" class="underline">View on GitHub</a>
     </p>
     <script>
       document.getElementById("file").onchange = async (e) => {
