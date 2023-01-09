@@ -15,10 +15,10 @@
       <h1 class="text-5xl md:text-7xl font-display text-white text-center">Floppa Files</h1>
       <div class="bg-fg p-2 md:p-4 rounded-md" id="list">
         <span class="text-white"># Upload files with curl:</span><br/>
-	<span class="text-sm md:text-base break-all">$ curl {{base_url}}/up/example.txt --data-binary @example.txt</span><br/><br/>
-        <span class="text-white"># Or upload online:</span><br/>
+	<span class="sm:block hidden">$ curl {{base_url}}/up/example.txt --data-binary @example.txt</span><br/><br/>
+        <span class="text-white sm:block hidden"># Or upload online:</span><br/>
         <input type="file" id="file" class="hidden"></input>
-        <label for="file" class="underline cursor-pointer">Select file</label>
+        <label for="file" class="underline cursor-pointer">Select file <i class="fa-solid fa-file-arrow-up "></i></label>
       </div>
       <div class="bg-fg p-2 md:p-4 rounded-md">
         <span class="text-white"># Info:</span><br/>
