@@ -37,15 +37,16 @@
       <i class="fa-brands fa-github"></i> <a href="https://github.com/gosher-studios/floppa-files" target="_blank" class="underline">View on GitHub</a>
     </p>
     <script>
+	    let list = document.getElementById("list");
       document.getElementById("file").onchange = async (e) => {
         let file = e.target.files[0];
-        document.getElementById("list").innerHTML += "<br/><span>Uploading "+file.name+".</span>";
+        list.innerHTML += "<br/><span>Uploading "+file.name+".</span>";
         let response = await fetch("/up/"+file.name, {
           method: "POST",
           body: file,
         });
         let url = await response.text();
-        document.getElementById("list").lastChild.innerHTML = "<a href="+url+" target=\"_blank\" class=\"underline\">"+url+"</a>";
+        list.lastChild.innerHTML = "<a href="+url+" target=\"_blank\" class=\"underline\">"+url+"</a>";
       }
     </script>
   </body>
