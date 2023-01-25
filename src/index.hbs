@@ -17,7 +17,7 @@
         <span class="text-white hidden sm:inline"># Upload files with curl:<br/></span>
 	    <span class="hidden sm:inline">$ curl {{base_url}}/up/example.txt --data-binary @example.txt<br/><br/></span>
         <span class="text-white hidden sm:inline"># Or upload online:<br/></span>
-        <input type="file" id="file" class="hidden"></input>
+        <input type="file" id="file" class="hidden">
         <div class="text-4xl p-2 sm:text-base sm:p-0">
           <i class="fa-solid fa-file-arrow-up"></i>
           <label for="file" class="underline cursor-pointer">Select file</label>
@@ -37,15 +37,27 @@
       <i class="fa-brands fa-github"></i> <a href="https://github.com/gosher-studios/floppa-files" target="_blank" class="underline">View on GitHub</a>
     </p>
     <script>
-      document.getElementById("file").onchange = async (e) => {
+	    let list = document.getElementById("list");
+      document.getElementById("file").onchange = (e) => {
         let file = e.target.files[0];
-        document.getElementById("list").innerHTML += "<br/><span>Uploading "+file.name+".</span>";
-        let response = await fetch("/up/"+file.name, {
+        list.appendChild(document.createElement("br"));
+        list.append(`Uploading "${file.name}".`);
+        fetch("/up/"+file.name, {
           method: "POST",
           body: file,
-        });
-        let url = await response.text();
-        document.getElementById("list").lastChild.innerHTML = "<a href="+url+" target=\"_blank\" class=\"underline\">"+url+"</a>";
+        }).then(response => response.text())
+          .then(url => {
+            let link = document.createElement("a");
+            link.target = "_blank";
+            link.href = url;
+            link.className = "underline";
+            link.innerText = url;
+            list.lastChild.replaceWith(link);
+          })
+          .catch(reason => {
+            console.error(reason);
+            list.lastChild.replaceWith("Error while uploading, see console for more information");
+          });
       }
     </script>
   </body>
