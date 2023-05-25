@@ -15,6 +15,7 @@ pub struct State {
 
 #[async_std::main]
 async fn main() -> Result {
+    //figure out settings tomorrow
     tide::log::start();
     let mut app = tide::with_state(State {
         path: PathBuf::from("/home/gsh/proj/floppa-files/files"),
