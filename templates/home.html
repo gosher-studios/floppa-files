@@ -1,24 +1,82 @@
-{% extends "base.html" %}
-{% block content %}
- <div id="drop_zone"  class = "h-40 cursor-pointer p-2" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
-<input type="file" id="file" class="hidden">
-        <div class="h-full w-full flex justify-center items-center p-2 border-white border-2">
-            <label for="file" class="underline text-4xl text-display"><img class=" h-20 w-full" src="/static/download.svg" /></label>
-        </div>
-
+{% extends "base.html" %} {% block content %}
+<div
+  id="drop_zone"
+  class="h-40 cursor-pointer p-2"
+  ondrop="dropHandler(event);"
+  ondragover="dragOverHandler(event);"
+>
+  <input type="file" id="file" class="hidden" />
+  <div
+    class="h-full w-full flex justify-center items-center p-2 border-white border-2"
+  >
+    <label for="file" class="underline text-4xl text-display"
+      ><img class="h-20 w-full cursor-pointer" src="/static/download.svg"
+    /></label>
   </div>
-        <div class="rounded-sm bg-fg h-full w-full p-4">
-         </div>
+</div>
+<div class="rounded-sm bg-fg h-full w-full p-4 text-sm overflow-none" id="list"></div>
 
-
-<script>     
-function dragOverHandler(ev) {
-  ev.preventDefault();
-}
-
-function dropHandler(ev) {
-
+<script>
+  function dragOverHandler(ev) {
+   console.log("File(s) in drop zone");
     ev.preventDefault();
-}
+  };
+
+  function dropHandler(ev) {
+    ev.preventDefault();
+  if (ev.dataTransfer.items) {
+    [...ev.dataTransfer.items].forEach((item, i) => {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+
+   let list = document.getElementById("list");
+    list.appendChild(document.createElement("br"));
+    list.append(`Uploading "${file.name}".`);
+    fetch(`http://localhost:8080/${file.name}`, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': 'text/plain'
+        },
+      })
+    .then(response => response.text())
+    .then(data => {
+      let link = document.createElement("a");
+      link.target = "_blank";
+      link.href = data;
+      link.innerText= data;
+      list.lastChild.replaceWith(link);
+    })
+    .catch(error => {
+      console.error('Error:', error)
+    })
+      }
+    });
+      }};
+      
+
+   let list = document.getElementById("list");
+    document.getElementById("file").onchange = (e) => {
+    let file = e.target.files[0];
+    list.appendChild(document.createElement("br"));
+    list.append(`Uploading "${file.name}".`);
+    fetch(`http://localhost:8080/${file.name}`, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': 'text/plain'
+        },
+      })
+    .then(response => response.text())
+    .then(data => {
+      let link = document.createElement("a");
+      link.target = "_blank";
+      link.href = data;
+      link.innerText= data;
+      list.lastChild.replaceWith(link);
+    })
+    .catch(error => {
+      console.error('Error:', error)
+    })};
 </script>
 {% endblock %}

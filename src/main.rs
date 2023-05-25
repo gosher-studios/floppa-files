@@ -19,7 +19,6 @@ async fn main() -> Result {
     let mut app = tide::with_state(State {
         path: PathBuf::from("/home/gsh/proj/floppa-files/files"),
     });
-
     app.at("/").get(home);
     app.at("/qr/:url").get(qr);
     app.at("/:id").get(serve).put(upload);
@@ -40,24 +39,19 @@ pub async fn serve(req: Request<State>) -> tide::Result {
 }
 
 pub async fn upload(mut req: Request<State>) -> tide::Result {
-    if &req.body_bytes().await?.len() <= &500000 {
-        let path = req.param("id")?;
-        let mut fs_path: PathBuf = req.state().clone().path;
-        let fpath = nanoid!(8) + "." + &str::replace(path, "%20", "-");
-        fs_path.push(&fpath);
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(&fs_path)
-            .await?;
-        let bytes_written = io::copy(req, file).await?;
-        let f: String = "https://colon3.lol/".to_string() + &fpath;
-
-        let res = tide::Response::builder(200).body(f).build();
-        Ok(res)
-    } else {
-        Ok(Response::new(StatusCode::ImATeapot))
-    }
+    let path = req.param("id")?;
+    let mut fs_path: PathBuf = req.state().clone().path;
+    let fpath = nanoid!(8) + "." + &str::replace(path, "%20", "-");
+    fs_path.push(&fpath);
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(&fs_path)
+        .await?;
+    let bytes_written = io::copy(req, file).await?;
+    let f: String = "https://colon3.lol/".to_string() + &fpath;
+    let res = tide::Response::builder(200).body(f).build();
+    Ok(res)
 }
 
 pub async fn qr(req: Request<State>) -> tide::Result {
