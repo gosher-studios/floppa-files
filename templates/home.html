@@ -1,0 +1,111 @@
+{% extends "base.html" %} {% block content %}
+<div
+  id="drop_zone"
+  class="h-40 cursor-pointer p-2"
+  ondrop="dropHandler(event);"
+  ondragover="dragOverHandler(event);"
+>
+  <input type="file" id="file" class="hidden" />
+  <div
+    class="h-full w-full p-2 border-white border-2"
+  >
+    <label for="file" class="underline text-display cursor-pointer h-full w-full flex justify-center items-center"
+      ><img class="h-16 w-full cursor-pointer" src="/static/download.svg"
+    /></label>
+  </div>
+</div>
+<div class="rounded-sm bg-fg h-full w-full p-2 text-sm overflow-none" id="list">
+</div>
+
+<script>
+
+  function qr(data,main) {
+    fetch(String("{{url}}qr/"+data)).then((response) => response.text())
+    .then((svg) => {
+    const parser = new DOMParser(); 
+    const qrdoc = parser.parseFromString(svg,'image/svg+xml');
+    const qr = qrdoc.documentElement;
+    main.appendChild(qr);
+    return qr;
+    }).catch((err) => {
+      console.error('fuck you',err);
+      return "static/download.svg";
+    });
+  };
+  function dragOverHandler(ev) {
+   console.log("File(s) in drop zone");
+    ev.preventDefault();
+  };
+
+  function balling(data) {
+
+let main = document.createElement('div');
+      main.className = "w-full h-fit bg-fg border-2 border-black overflow-none p-2"
+      let innertext = document.createElement('a');
+      innertext.href = String("{{url}}"+data);
+      innertext.className = "underline";
+      innertext.innerText = String("{{url}}"+data);
+      let qre = qr(data,main);
+      main.appendChild(innertext);
+      list.lastChild.replaceWith(main);
+      
+    
+      };
+
+  function dropHandler(ev) {
+    ev.preventDefault();
+  if (ev.dataTransfer.items) {
+    [...ev.dataTransfer.items].forEach((item, i) => {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+
+   let list = document.getElementById("list");
+    list.appendChild(document.createElement("br"));
+    list.append(`Uploading "${file.name}".`);
+    fetch(`{{url}}${file.name}`, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': 'text/plain'
+        },
+      })
+    .then(response => response.text())
+    .then(data => {
+      balling(data);      
+                
+    })
+    .catch(error => {
+      console.error('Error:', error)
+    })
+      }
+    });
+      }};
+      
+
+let list = document.getElementById("list");
+
+document.getElementById("file").onchange = (e) => {
+    let file = e.target.files[0];
+    list.appendChild(document.createElement("br"));
+    list.append(`Uploading "${file.name}".`);
+    fetch(`{{url}}${file.name}`, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': 'text/plain'
+        },
+      })
+    .then(response => response.text())
+    .then(data => {
+    balling(data);
+          
+   })
+    .catch(error => {
+      console.error('Error:', error)
+    })
+      
+  }
+    
+    
+   </script>
+{% endblock %}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Floppa Files</title>
+    <link rel="stylesheet" href="/static/main.css">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&f[]=clash-grotesk@1&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-bg text-white text-lg font-body flex flex-col items-center p-4 sm:p-8">
+    <a href="/" class="text-5xl sm:text-6xl text-white font-display mb-2">Floppa Files</a>
+	  <div class="bg-fg rounded-sm w-full h-max sm:w-96">
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>
