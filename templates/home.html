@@ -1,17 +1,17 @@
 {% extends "base.html" %} {% block content %}
 <div
   id="drop_zone"
-  class="h-40 cursor-pointer p-2"
+  class="h-fit cursor-pointer p-2"
   ondrop="dropHandler(event);"
   ondragover="dragOverHandler(event);"
 >
   <input type="file" id="file" class="hidden" />
   <div
-    class="h-full w-full p-2 border-white border-2"
+    class=" w-full p-2 border-grey border-2"
   >
-    <label for="file" class="underline text-display cursor-pointer h-full w-full flex justify-center items-center"
-      ><img class="h-16 w-full cursor-pointer" src="/static/download.svg"
-    /></label>
+    <label for="file" class="text-body cursor-pointer h-18 w-full flex justify-center items-center text-white"
+      <h1>Drag or Upload Files</h1>
+    </label>
   </div>
 </div>
 <div class="rounded-sm bg-fg h-full w-full p-2 text-sm overflow-none" id="list">
@@ -25,6 +25,8 @@
     const parser = new DOMParser(); 
     const qrdoc = parser.parseFromString(svg,'image/svg+xml');
     const qr = qrdoc.documentElement;
+    qr.setAttribute("height",250);
+    qr.setAttribute("width",250);
     main.appendChild(qr);
     return qr;
     }).catch((err) => {
@@ -41,14 +43,44 @@
 
 let main = document.createElement('div');
       //TODO listen to maaaa
-      main.className = "w-full h-fit bg-fg border-2 border-black overflow-none p-2"
+      main.className = "w-full h-fit bg-fg border-1 border-white overflow-none text-clip flex flex-row"
       let innertext = document.createElement('a');
       innertext.href = String("{{url}}"+data);
-      innertext.className = "underline";
+      innertext.className = "truncate w-6/8 border-white border px-1 ";
       innertext.innerText = String("{{url}}"+data);
-      let qre = qr(data,main);
+
+      let dialog = document.createElement('dialog');
+      dialog.className="h-fit w-fit"
+      let qre = qr(data,dialog);
+      let button = document.createElement('button');
+      button.value = "default";
+      button.className="aspect-square w-1/8 border border-black px-1"
+      let icon = document.createElement('img');
+      icon.src = String("{{url}}static/qr.svg");
+      icon.className="h-full w-full stroke-white";
+      button.appendChild(icon);
+      button.addEventListener('click', () => {
+        dialog.showModal();
+      })
+      let copy = document.createElement('button');
+       copy.className="aspect-square w-1/8 border border-black px-1";
+      let cicon = document.createElement('img');
+      cicon.src = String("{{url}}static/copy.svg");
+      cicon.className="h-full w-full stroke-white ";
+      copy.appendChild(cicon);
+      copy.addEventListener('click', () => {
+        let text = String("{{url}}"+data);
+         navigator.clipboard.writeText(text);
+      })
+      
       main.appendChild(innertext);
+      main.appendChild(dialog);
+      main.appendChild(button);
+      main.appendChild(copy);
       list.lastChild.replaceWith(main);
+
+
+  
       
     
       };
