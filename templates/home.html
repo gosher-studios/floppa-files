@@ -43,30 +43,30 @@
 
 let main = document.createElement('div');
       //TODO listen to maaaa
-      main.className = "w-full h-fit bg-fg border-1 border-white overflow-none text-clip flex flex-row"
+      main.className = "w-full h-fit  text-md overflow-none text-clip flex flex-row items-center"
       let innertext = document.createElement('a');
       innertext.href = String("{{url}}"+data);
-      innertext.className = "truncate w-6/8 border-white border px-1 ";
+      innertext.className = "truncate w-64 px-1 mx-1 border-grey border ";
       innertext.innerText = String("{{url}}"+data);
 
       let dialog = document.createElement('dialog');
-      dialog.className="h-fit w-fit"
+      dialog.className="h-fit w-fit bg-bg border-2 border-red"
       let qre = qr(data,dialog);
       let button = document.createElement('button');
       button.value = "default";
-      button.className="aspect-square w-1/8 border border-black px-1"
+      button.className="";
       let icon = document.createElement('img');
       icon.src = String("{{url}}static/qr.svg");
-      icon.className="h-full w-full stroke-white";
+      icon.className="h-full w-full";
       button.appendChild(icon);
       button.addEventListener('click', () => {
         dialog.showModal();
       })
       let copy = document.createElement('button');
-       copy.className="aspect-square w-1/8 border border-black px-1";
+       copy.className="";
       let cicon = document.createElement('img');
       cicon.src = String("{{url}}static/copy.svg");
-      cicon.className="h-full w-full stroke-white ";
+      cicon.className="h-full w-full";
       copy.appendChild(cicon);
       copy.addEventListener('click', () => {
         let text = String("{{url}}"+data);

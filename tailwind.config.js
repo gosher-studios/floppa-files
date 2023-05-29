@@ -3,7 +3,7 @@ module.exports = {
   theme: {
     colors: {
       "bg": "#111",
-      "fg": "#1a1a1a",
+      "fg": "#202020",
       "hover": "#0a0a0a",
       "accent": "#aaa",
       "white": "#fff",
