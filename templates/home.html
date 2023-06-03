@@ -62,6 +62,9 @@
       button.addEventListener('click', () => {
         dialog.showModal();
       })
+      dialog.addEventListener("click", (e) => {
+        dialog.close()
+      });
       let copy = document.createElement('button');
        copy.className="";
       let cicon = document.createElement('img');
