@@ -10,14 +10,13 @@ fn main() {
             .output()
             .expect("failed to run tailwind, is tailwind installed????")
     } else {
-        Command::new("sh")
+        Command::new("tailwind")
             .args([
-                "-c '",
                 "-i",
                 "templates/main.css",
                 "-o",
                 "static/main.css",
-                "--minify'",
+                "--minify",
             ])
             .output()
             .expect("failed to run tailwind, is tailwind installed????")
