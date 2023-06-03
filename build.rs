@@ -8,8 +8,7 @@ fn main() {
                 .expect("failed to run tailwind, is tailwind installed????")
     } else {
         Command::new("sh")
-                .arg("-c")
-                .arg("tailwind -i templates/main.css -o static/main.css --minify")
+                .arg("-c tailwind -i templates/main.css -o static/main.css --minify")
                 .output()
                 .expect("failed to run tailwind, is tailwind installed????")
     };    
