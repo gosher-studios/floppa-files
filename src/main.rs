@@ -5,8 +5,9 @@ use qrcode::render::svg;
 use qrcode::QrCode;
 use serde::Deserialize;
 use std::path::PathBuf;
+use tide::http::headers::HeaderValue;
+use tide::security::CorsMiddleware;
 use tide::{Body, Request, Response, StatusCode};
-use toml;
 pub type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Deserialize, Clone)]
@@ -24,6 +25,8 @@ async fn main() -> Result {
         .unwrap();
     let state: State = toml::from_str(&toml_content)?;
     let mut app = tide::with_state(state);
+
+    app.with(CorsMiddleware::new().allow_methods("GET, PUT".parse::<HeaderValue>()?));
     app.at("/").get(home);
     app.at("/qr/:url").get(qr);
     app.at("/:id").get(serve).put(upload);
