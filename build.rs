@@ -12,12 +12,12 @@ fn main() {
     } else {
         Command::new("sh")
             .args([
-                "-c'",
+                "-c",
                 "-i",
                 "templates/main.css",
                 "-o",
                 "static/main.css",
-                "--minify'",
+                "--minify",
             ])
             .output()
             .expect("failed to run tailwind, is tailwind installed????")
