@@ -12,6 +12,7 @@ fn main() {
     } else {
         Command::new("sh")
             .args([
+                "-c",
                 "-i",
                 "templates/main.css",
                 "-o",
