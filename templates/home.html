@@ -1,16 +1,9 @@
 {% extends "base.html" %} {% block content %}
-<div
-  id="drop_zone"
-  class="h-fit cursor-pointer p-2"
-  ondrop="dropHandler(event);"
-  ondragover="dragOverHandler(event);"
->
+<div id="drop_zone" class="h-fit cursor-pointer p-2" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
   <input type="file" id="file" class="hidden" />
-  <div
-    class=" w-full p-2 border-grey border-2"
-  >
-    <label for="file" class="text-body cursor-pointer h-18 w-full flex justify-center items-center text-white"
-      <h1>Drag or Upload Files</h1>
+  <div class=" w-full p-2 border-grey border-2">
+    <label for="file" class="text-body cursor-pointer h-18 w-full flex justify-center items-center text-white" <h1>Drag
+      or Upload Files</h1>
     </label>
   </div>
 </div>
@@ -19,129 +12,130 @@
 
 <script>
 
-  function qr(data,main) {
-    fetch(String("{{url}}qr/"+data)).then((response) => response.text())
-    .then((svg) => {
-    const parser = new DOMParser(); 
-    const qrdoc = parser.parseFromString(svg,'image/svg+xml');
-    const qr = qrdoc.documentElement;
-    qr.setAttribute("height",250);
-    qr.setAttribute("width",250);
-    main.appendChild(qr);
-    return qr;
-    }).catch((err) => {
-      console.error('fuck you',err);
-      return "static/download.svg";
-    });
+  function qr(data, main) {
+    fetch(String("{{url}}qr/" + data)).then((response) => response.text())
+      .then((svg) => {
+        const parser = new DOMParser();
+        const qrdoc = parser.parseFromString(svg, 'image/svg+xml');
+        const qr = qrdoc.documentElement;
+        qr.setAttribute("height", 250);
+        qr.setAttribute("width", 250);
+        main.appendChild(qr);
+        return qr;
+      }).catch((err) => {
+        console.error('fuck you', err);
+        return "static/download.svg";
+      });
   };
   function dragOverHandler(ev) {
-   console.log("File(s) in drop zone");
+    console.log("File(s) in drop zone");
     ev.preventDefault();
   };
 
   function balling(data) {
 
-      let main = document.createElement('div');
-      // TODO listen to maaaa
-      main.className = "w-full h-fit border border-grey divide-x divide-grey font-body text-md overflow-none text-clip flex flex-row items-center"
-      let innertext = document.createElement('a');
-      innertext.href = String("{{url}}"+data);
-      innertext.className = "truncate w-80 px-1 mx-1 ";
-      innertext.innerText = String("{{url}}"+data);
+    let main = document.createElement('div');
+    // TODO listen to maaaa
+    main.className = "w-full h-fit border border-grey divide-x divide-grey font-body text-md overflow-none text-clip flex flex-row items-center"
+    let innertext = document.createElement('a');
+    innertext.href = String("{{url}}" + data);
+    innertext.className = "truncate w-80 px-1 mx-1 ";
+    innertext.innerText = String("{{url}}" + data);
 
-      let dialog = document.createElement('dialog');
-      dialog.className="h-fit w-fit bg-bg border-2 border-red"
-      let qre = qr(data,dialog);
-      let button = document.createElement('button');
-      button.value = "default";
-      button.className="";
-      let icon = document.createElement('img');
-      icon.src = String("{{url}}static/qr.svg");
-      icon.className="h-full w-full";
-      button.appendChild(icon);
-      button.addEventListener('click', () => {
-        dialog.showModal();
-      })
-      dialog.addEventListener("click", (e) => {
-        dialog.close()
-      });
-      let copy = document.createElement('button');
-       copy.className="";
-      let cicon = document.createElement('img');
-      cicon.src = String("{{url}}static/copy.svg");
-      cicon.className="h-full w-full";
-      copy.appendChild(cicon);
-      copy.addEventListener('click', () => {
-        let text = String("{{url}}"+data);
-         navigator.clipboard.writeText(text);
-      })
-      
-      main.appendChild(innertext);
-      main.appendChild(dialog);
-      main.appendChild(button);
-      main.appendChild(copy);
-      list.lastChild.replaceWith(main);
+    let dialog = document.createElement('dialog');
+    dialog.className = "h-fit w-fit bg-bg border-2 border-red"
+    let qre = qr(data, dialog);
+    let button = document.createElement('button');
+    button.value = "default";
+    button.className = "";
+    let icon = document.createElement('img');
+    icon.src = String("{{url}}static/qr.svg");
+    icon.className = "h-full w-full";
+    button.appendChild(icon);
+    button.addEventListener('click', () => {
+      dialog.showModal();
+    })
+    dialog.addEventListener("click", (e) => {
+      dialog.close()
+    });
+    let copy = document.createElement('button');
+    copy.className = "";
+    let cicon = document.createElement('img');
+    cicon.src = String("{{url}}static/copy.svg");
+    cicon.className = "h-full w-full";
+    copy.appendChild(cicon);
+    copy.addEventListener('click', () => {
+      let text = String("{{url}}" + data);
+      navigator.clipboard.writeText(text);
+    })
+
+    main.appendChild(innertext);
+    main.appendChild(dialog);
+    main.appendChild(button);
+    main.appendChild(copy);
+    list.lastChild.replaceWith(main);
 
 
-  
-      
-    
-      };
+
+
+
+  };
 
   function dropHandler(ev) {
     ev.preventDefault();
-  if (ev.dataTransfer.items) {
-    [...ev.dataTransfer.items].forEach((item, i) => {
-      if (item.kind === "file") {
-        const file = item.getAsFile();
+    if (ev.dataTransfer.items) {
+      [...ev.dataTransfer.items].forEach((item, i) => {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
 
-   let list = document.getElementById("list");
-    list.appendChild(document.createElement("br"));
-    list.append(`Uploading "${file.name}".`);
-    fetch(`{{url}}${file.name}`, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': 'text/plain'
-        },
-      })
-    .then(response => response.text())
-    .then(data => {
-      balling(data);      
-                
-    })
-    .catch(error => {
-      console.error('Error:', error)
-    })
-      }
-    });
-      }};
-      
+          let list = document.getElementById("list");
+          list.appendChild(document.createElement("br"));
+          list.append(`Uploading "${file.name}"`);
+          fetch(`{{url}}${file.name}`, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': 'text/plain'
+            },
+          })
+            .then(response => response.text())
+            .then(data => {
+              balling(data);
 
-let list = document.getElementById("list");
+            })
+            .catch(error => {
+              console.error('Error:', error)
+            })
+        }
+      });
+    }
+  };
 
-document.getElementById("file").onchange = (e) => {
+
+  let list = document.getElementById("list");
+
+  document.getElementById("file").onchange = (e) => {
     let file = e.target.files[0];
     list.appendChild(document.createElement("br"));
     list.append(`Uploading "${file.name}".`);
     fetch(`{{url}}${file.name}`, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': 'text/plain'
-        },
-      })
-    .then(response => response.text())
-    .then(data => {
-    balling(data);
-          
-   })
-    .catch(error => {
-      console.error('Error:', error)
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': 'text/plain'
+      },
     })
-      
+      .then(response => response.text())
+      .then(data => {
+        balling(data);
+
+      })
+      .catch(error => {
+        console.error('Error:', error)
+      })
+
   }
     //TODO make this cleaner
-    
-   </script>
+
+</script>
 {% endblock %}
