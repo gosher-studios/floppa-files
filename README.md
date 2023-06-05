@@ -9,3 +9,5 @@
   * cargo run or something
   
 
+
+if you want to help, read contributing.md lmao
