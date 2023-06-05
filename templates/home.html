@@ -115,9 +115,14 @@
           'Content-Type': 'text/plain'
         }
       }).catch(error => {
-        console.error('Error:', error);
+        err = document.createElement("a")
+        err.innerText = error
+        loading.replaceWith(err);
       });
-      balling(await res.text(), file.name);
+      if (res.status == 200) {
+        console.log(res);
+        balling(await res.text(), file.name);
+      }
 
 
     }
