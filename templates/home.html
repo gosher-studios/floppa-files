@@ -1,6 +1,6 @@
 {% extends "base.html" %} {% block content %}
 <div id="drop_zone" class="h-fit cursor-pointer p-2" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
-  <input type="file" id="file" class="hidden" />
+  <input type="file" id="file" class="hidden" multiple />
   <div class=" w-full p-2 border-grey border-2">
     <label for="file" class="text-body cursor-pointer h-18 w-full flex justify-center items-center text-white" <h1>Drag
       or Upload Files</h1>
@@ -32,8 +32,8 @@
     ev.preventDefault();
   };
 
-  function balling(data) {
-
+  function balling(data, id) {
+    let l = document.getElementById(id);
     let main = document.createElement('div');
     // TODO listen to maaaa
     main.className = "w-full h-fit border border-grey divide-x divide-grey font-body text-md overflow-none text-clip flex flex-row items-center"
@@ -73,7 +73,7 @@
     main.appendChild(dialog);
     main.appendChild(button);
     main.appendChild(copy);
-    list.lastChild.replaceWith(main);
+    l.replaceWith(main);
 
 
 
@@ -101,6 +101,7 @@
             .then(response => response.text())
             .then(data => {
               balling(data);
+              console.log("balling" + data);
 
             })
             .catch(error => {
@@ -115,25 +116,28 @@
   let list = document.getElementById("list");
 
   document.getElementById("file").onchange = (e) => {
-    let file = e.target.files[0];
-    list.appendChild(document.createElement("br"));
-    list.append(`Uploading "${file.name}".`);
-    fetch(`{{url}}${file.name}`, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': 'text/plain'
-      },
-    })
-      .then(response => response.text())
-      .then(data => {
-        balling(data);
-
+    Array.from(e.target.files).forEach((file) => {
+      list.appendChild(document.createElement("br"));
+      let cock = document.createElement("a")
+      cock.innertext = `Uploading "${file.name} ".`;
+      cock.id = file.name;
+      list.appendChild(cock);
+      fetch(`{{url}}${file.name}`, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': 'text/plain'
+        },
       })
-      .catch(error => {
-        console.error('Error:', error)
-      })
-
+        .then(response => response.text())
+        .then(data => {
+          balling(data, file.name);
+          console.log(data);
+        })
+        .catch(error => {
+          console.error('Error:', error)
+        })
+    });
   }
     //TODO make this cleaner
 

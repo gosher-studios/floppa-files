@@ -47,7 +47,7 @@ pub async fn serve(req: Request<State>) -> tide::Result {
 }
 
 pub async fn upload(req: Request<State>) -> tide::Result {
-    //TODO make the max thing actually functional and the url fixeruper
+    //TODO make the max thing actually functional
     let path = req.param("id")?;
     let mut fs_path: PathBuf = req.state().clone().path;
     let fpath = nanoid!(8) + "." + &str::replace(path, "%20", "-");
