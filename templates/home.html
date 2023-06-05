@@ -81,65 +81,47 @@
 
   };
 
-  function dropHandler(ev) {
+  async function dropHandler(ev) {
     ev.preventDefault();
     if (ev.dataTransfer.items) {
-      [...ev.dataTransfer.items].forEach((item, i) => {
-        if (item.kind === "file") {
-          const file = item.getAsFile();
-
-          let list = document.getElementById("list");
-          list.appendChild(document.createElement("br"));
-          list.append(`Uploading "${file.name}"`);
-          fetch(`{{url}}${file.name}`, {
-            method: 'PUT',
-            body: file,
-            headers: {
-              'Content-Type': 'text/plain'
-            },
-          })
-            .then(response => response.text())
-            .then(data => {
-              balling(data);
-              console.log("balling" + data);
-
-            })
-            .catch(error => {
-              console.error('Error:', error)
-            })
-        }
-      });
+      let arr = Array.from([...ev.dataTransfer.items]);
+      let f = arr.filter(item => item.kind === "file").map((item) => item.getAsFile());
+      cock(f);
     }
   };
 
 
   let list = document.getElementById("list");
 
-  document.getElementById("file").onchange = (e) => {
-    Array.from(e.target.files).forEach((file) => {
-      list.appendChild(document.createElement("br"));
-      let cock = document.createElement("a")
-      cock.innertext = `Uploading "${file.name} ".`;
-      cock.id = file.name;
-      list.appendChild(cock);
-      fetch(`{{url}}${file.name}`, {
+  document.querySelector('#file')
+    .addEventListener('change', async (event) => {
+      await cock(Array.from(event.target.files))
+    })
+
+  async function cock(files) {
+
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+
+      let loading = document.createElement("p");
+      loading.id = file.name;
+      loading.innerText = `Uploading ${file.name}`;
+      list.appendChild(loading);
+
+      let res = await fetch(`{{url}}${file.name}`, {
         method: 'PUT',
         body: file,
         headers: {
           'Content-Type': 'text/plain'
-        },
-      })
-        .then(response => response.text())
-        .then(data => {
-          balling(data, file.name);
-          console.log(data);
-        })
-        .catch(error => {
-          console.error('Error:', error)
-        })
-    });
+        }
+      }).catch(error => {
+        console.error('Error:', error);
+      });
+      balling(await res.text(), file.name);
+
+
+    }
   }
-    //TODO make this cleaner
 
 </script>
 {% endblock %}
