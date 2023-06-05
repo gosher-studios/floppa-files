@@ -15,6 +15,7 @@ pub struct State {
     path: PathBuf,
     url: String,
     max: i16,
+    port: String,
 }
 
 #[async_std::main]
@@ -24,6 +25,7 @@ async fn main() -> Result {
         .await
         .unwrap();
     let state: State = toml::from_str(&toml_content)?;
+    let port = state.port.clone();
     let mut app = tide::with_state(state);
 
     app.with(CorsMiddleware::new().allow_methods("GET, PUT".parse::<HeaderValue>()?));
@@ -31,7 +33,7 @@ async fn main() -> Result {
     app.at("/qr/:url").get(qr);
     app.at("/:id").get(serve).put(upload);
     app.at("/static").serve_dir("static")?;
-    app.listen("127.0.0.1:8080").await?;
+    app.listen(&port).await?;
     Ok(())
 }
 
