@@ -55,6 +55,9 @@ pub async fn upload(req: Request<State>) -> tide::Result {
             return Ok(tide::Response::new(418));
         }
     }
+    //TODO ADD FUNNY CAT https://http.cat/402
+    // SO LIKE YEAH DO THE THING WITH SIZE IF CANT DO THAT
+
     let path = req.param("id")?;
     let mut fs_path: PathBuf = req.state().clone().path;
     let fpath = nanoid!(8) + "." + &str::replace(path, "%20", "-");
