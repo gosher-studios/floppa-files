@@ -1,4 +1,4 @@
 path = "/Users/tymek/projects/floppa-files/files"
 url = "http://localhost:8080/"
-max = 69
+max = 10_000_000_000
 port = "127.0.0.1:8080"

@@ -7,6 +7,10 @@
     </label>
   </div>
 </div>
+<div class="flex flex-row text-l">
+  <h6> Hosting {{total}} files </h6>
+  <h6> Max file size upload {{max}} </h6>
+</div>
 <div class="rounded-sm bg-fg h-full w-full p-2 text-sm overflow-none" id="list">
 </div>
 
@@ -119,24 +123,14 @@
       }).catch(error => {
         err = document.createElement("a")
         err.innerText = error
-        loading.replaceWith(`Failed to Upload ${file.name}<br/>${error}`);
+        loading.replaceWith(`Failed to Upload ${file.name}`);
       });
       if (res.status == 200) {
         console.log(res);
         balling(await res.text(), file.name);
       }
-      // else if (res.status = 418) {
-      //   // err = document.createElement("img")
-      //   // err.innerText = `File size too big : ${file.name}`;
-      //   err = document.createElement("img")
-      //   err.src = await res.text();
-      //   loading.replaceWith(err);
-      // }
       else {
-        // err = document.createElement("a")
-        // err.innertext = `${res.status} Failed to upload ${file.name}`
         err = document.createElement("img");
-        // err.src = `https://cataas.com/cat/says/${res.status}?filter=floppa` + String(Math.round(Math.random() * 20))
         err.src = `https://http.cat/${res.status}`
         loading.replaceWith(err)
       }
