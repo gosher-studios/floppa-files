@@ -124,14 +124,20 @@
       if (res.status == 200) {
         console.log(res);
         balling(await res.text(), file.name);
-      } else if (res.status = 418) {
-        err = document.createElement("a")
-        err.innerText = `File size too big : ${file.name}`;
-        loading.replaceWith(err);
       }
+      // else if (res.status = 418) {
+      //   // err = document.createElement("img")
+      //   // err.innerText = `File size too big : ${file.name}`;
+      //   err = document.createElement("img")
+      //   err.src = await res.text();
+      //   loading.replaceWith(err);
+      // }
       else {
-        err = document.createElement("a")
-        err.innertext = `${res.status} Failed to upload ${file.name}`
+        // err = document.createElement("a")
+        // err.innertext = `${res.status} Failed to upload ${file.name}`
+        err = document.createElement("img");
+        // err.src = `https://cataas.com/cat/says/${res.status}?filter=floppa` + String(Math.round(Math.random() * 20))
+        err.src = `https://http.cat/${res.status}`
         loading.replaceWith(err)
       }
 

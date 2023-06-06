@@ -49,15 +49,10 @@ pub async fn serve(req: Request<State>) -> tide::Result {
 }
 
 pub async fn upload(req: Request<State>) -> tide::Result {
-    //TODO make the max thing actually functional
-    if let Some(size) = req.len() {
-        if size as i16 > req.state().clone().max {
-            return Ok(tide::Response::new(418));
-        }
-    }
-    //TODO ADD FUNNY CAT https://http.cat/402
-    // SO LIKE YEAH DO THE THING WITH SIZE IF CANT DO THAT
-
+    match req.len() {
+        Some(size) if !(size as i16 > req.state().clone().max) => {}
+        _ => return Ok(Response::new(413)),
+    };
     let path = req.param("id")?;
     let mut fs_path: PathBuf = req.state().clone().path;
     let fpath = nanoid!(8) + "." + &str::replace(path, "%20", "-");
