@@ -47,8 +47,7 @@
     innertext.innerText = String("{{url}}" + data);
     innertext.setAttribute("target", "_blank");
 
-    let dialog = document.createElement('dialog');
-    dialog.className = "h-fit w-fit bg-bg border-2 border-red"
+    let dialog = create_element("dialog", "h-fit w-fit bg-bg border-2 border-red");
     let qre = qr(data, dialog);
     let button = document.createElement('button');
     button.value = "default";
@@ -80,12 +79,13 @@
     main.appendChild(button);
     main.appendChild(copy);
     l.replaceWith(main);
-
-
-
-
-
   };
+
+  function create_element(type, className) {
+    let el = document.createElement(type);
+    el.className = className;
+    return el
+  }
 
   async function dropHandler(ev) {
     ev.preventDefault();
