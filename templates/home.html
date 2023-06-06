@@ -41,6 +41,7 @@
     innertext.href = String("{{url}}" + data);
     innertext.className = "truncate w-80 px-1 mx-1 ";
     innertext.innerText = String("{{url}}" + data);
+    innertext.setAttribute("target", "_blank");
 
     let dialog = document.createElement('dialog');
     dialog.className = "h-fit w-fit bg-bg border-2 border-red"
@@ -66,6 +67,7 @@
     copy.appendChild(cicon);
     copy.addEventListener('click', () => {
       let text = String("{{url}}" + data);
+      console.log(text);
       navigator.clipboard.writeText(text);
     })
 
@@ -117,7 +119,7 @@
       }).catch(error => {
         err = document.createElement("a")
         err.innerText = error
-        loading.replaceWith(err);
+        loading.replaceWith(`Failed to Upload ${file.name}<br/>${error}`);
       });
       if (res.status == 200) {
         console.log(res);
