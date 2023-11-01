@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use async_std::{io, fs};
 use async_std::fs::File;
 use async_std::stream::StreamExt;
@@ -16,7 +17,7 @@ type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[derive(Deserialize, Clone)]
 struct Config {
   listen: SocketAddr,
-  file_dir: String,
+  file_dir: PathBuf,
   base_url: String,
   max_size: usize,
 }
@@ -37,17 +38,12 @@ async fn main() -> Result {
 }
 
 async fn upload(req: Request<Config>) -> tide::Result {
-  let conf = req.state();
+  let conf = req.state().clone();
   if req.len().unwrap_or(usize::MAX) > conf.max_size {
     return Ok(Response::new(413));
   }
-  let name = format!(
-    "{}/{}.{}",
-    conf.file_dir,
-    nanoid!(8),
-    req.param("id")?.replace("%20", "-")
-  );
-  io::copy(req, File::create(name.clone()).await?).await?;
+  let name = format!("{}.{}", nanoid!(8), req.param("id")?.replace("%20", "-"));
+  io::copy(req, File::create(conf.file_dir.join(name.clone())).await?).await?;
   Ok(name.into())
 }
 

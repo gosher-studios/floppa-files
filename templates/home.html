@@ -1,143 +1,52 @@
 {% extends "base.html" %} {% block content %}
-<div id="drop_zone" class="h-fit cursor-pointer p-2" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
-  <input type="file" id="file" class="hidden" multiple />
-  <div class=" w-full p-2 border-grey border-2">
-    <label for="file" class="text-body cursor-pointer h-18 w-full flex justify-center items-center text-white" <h1>Drag
-      or Upload Files</h1>
-    </label>
-  </div>
+<div class="bg-fg p-4 rounded-md text-accent" id="list" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
+  <span class="text-white hidden sm:inline"># Upload files with curl:<br></span>
+  <span class="hidden sm:inline">$ curl -T (file) {{url}}<br><br></span>
+  <span class="text-white hidden sm:inline"># Or drag here to upload:<br></span>
+  <label for="file" class="text-accent text-4xl sm:text-lg cursor-pointer underline">Select File</label>
+  <div id="list" class="text-base"></div>
 </div>
-<div class="rounded-sm bg-fg h-full w-full p-2 text-sm overflow-none" id="list">
-</div>
-
-<div class="flex flex-row text-l w-full justify-center items-center">
-  <h6 class="px-4 pb-2"> Hosting {{total}} files </h6>
-  <h6 class="px-4 pb-2"> Max file size upload {{max}} </h6>
-</div>
+<input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);"/>
 <script>
+  async function dropHandler(e) {
+    e.preventDefault();
+    let arr = Array.from([...e.dataTransfer.items]);
+    upload(arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()));
+    };
 
-  function qr(data, main) {
-    fetch(String("{{url}}/qr/" + data)).then((response) => response.text())
-      .then((svg) => {
-        const parser = new DOMParser();
-        const qrdoc = parser.parseFromString(svg, 'image/svg+xml');
-        const qr = qrdoc.documentElement;
-        qr.setAttribute("height", 250);
-        qr.setAttribute("width", 250);
-        main.appendChild(qr);
-        return qr;
-      }).catch((err) => {
-        console.error('fuck you', err);
-        return "static/download.svg";
-      });
-  };
-  function dragOverHandler(ev) {
-    console.log("File(s) in drop zone");
-    ev.preventDefault();
-  };
-
-  function balling(data, id) {
-    let l = document.getElementById(id);
-    let main = document.createElement('div');
-    // TODO listen to maaaa
-    main.className = "w-full h-fit border border-grey divide-x divide-grey font-body text-md overflow-none text-clip flex flex-row items-center"
-    let innertext = document.createElement('a');
-    innertext.href = String("{{url}}" + data);
-    innertext.className = "truncate w-80 px-1 mx-1 ";
-    innertext.innerText = String("{{url}}" + data);
-    innertext.setAttribute("target", "_blank");
-
-    let dialog = create_element("dialog", "h-fit w-fit bg-bg border-2 border-red");
-    let qre = qr(data, dialog);
-    let button = document.createElement('button');
-    button.value = "default";
-    button.className = "";
-    let icon = document.createElement('img');
-    icon.src = String("{{url}}static/qr.svg");
-    icon.className = "h-full w-full";
-    button.appendChild(icon);
-    button.addEventListener('click', () => {
-      dialog.showModal();
-    })
-    dialog.addEventListener("click", (e) => {
-      dialog.close()
-    });
-    let copy = document.createElement('button');
-    copy.className = "";
-    let cicon = document.createElement('img');
-    cicon.src = String("{{url}}static/copy.svg");
-    cicon.className = "h-full w-full";
-    copy.appendChild(cicon);
-    copy.addEventListener('click', () => {
-      let text = String("{{url}}" + data);
-      console.log(text);
-      navigator.clipboard.writeText(text);
-    })
-
-    main.appendChild(innertext);
-    main.appendChild(dialog);
-    main.appendChild(button);
-    main.appendChild(copy);
-    l.replaceWith(main);
-  };
-
-  function create_element(type, className) {
-    let el = document.createElement(type);
-    el.className = className;
-    return el
+  function dragOverHandler(e) {
+    e.preventDefault()
   }
 
-  async function dropHandler(ev) {
-    ev.preventDefault();
-    if (ev.dataTransfer.items) {
-      let arr = Array.from([...ev.dataTransfer.items]);
-      let f = arr.filter(item => item.kind === "file").map((item) => item.getAsFile());
-      cock(f);
-    }
-  };
+  function uploadHandler(e) {
+    upload(Array.from([...e.target.files]));
+  }
 
-
-  let list = document.getElementById("list");
-
-  document.querySelector('#file')
-    .addEventListener('change', async (event) => {
-      await cock(Array.from(event.target.files))
-    })
-
-  async function cock(files) {
-
+  async function upload(files) {
+    console.log("upload");
     for (let i = 0; i < files.length; i++) {
       let file = files[i];
 
-      let loading = document.createElement("p");
-      loading.id = file.name;
-      loading.innerText = `Uploading ${file.name}`;
-      list.appendChild(loading);
+      let log = document.createElement("p");
+      log.innerText = `Uploading ${file.name}`;
+      document.getElementById("list").appendChild(log);
 
-      let res = await fetch(`{{url}}${file.name}`, {
+      let res = await fetch(file.name, {
         method: 'PUT',
         body: file,
         headers: {
           'Content-Type': 'text/plain'
         }
       }).catch(error => {
-        err = document.createElement("a")
-        err.innerText = error
-        loading.replaceWith(`Failed to Upload ${file.name}`);
+        log.innerText = `Failed to Upload ${file.name}`;
       });
       if (res.status == 200) {
-        console.log(res);
-        balling(await res.text(), file.name);
+        let url = await res.text();
+        log.innerHTML = `<a class="underline" href="${url}">${url}</a>`;
+      } else {
+        log.innerHTML = `<img src="https://http.cat/${res.status}" />`;
       }
-      else {
-        err = document.createElement("img");
-        err.src = `https://http.cat/${res.status}`
-        loading.replaceWith(err)
-      }
-
-
     }
   }
-
 </script>
 {% endblock %}

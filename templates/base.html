@@ -8,14 +8,15 @@
     <meta content="Floppa Files" property="og:title" />
     <meta content="files upload but yeah" property="og:description" />
     <meta content="{{url}}" property="og:url" />
-    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&f[]=clash-grotesk@1&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&amp;display=swap" rel="stylesheet">
   </head>
-  <body class="bg-bg text-white text-lg font-body flex flex-col items-center p-4 sm:p-8">
-    <h1 class="text-5xl sm:text-6xl text-white font-display mb-2">Floppa Files</h1>
-    <div class="bg-fg rounded-sm  h-max sm:w-96 w-full">
+  <body class="bg-bg font-mono flex justify-center md:text-lg">
+    <div class="p-6 w-full lg:w-[1024px] space-y-4"> 
+      <h1 class="text-5xl md:text-7xl font-display text-white text-center">Floppa Files</h1>
       {% block content %}{% endblock %}
+      <img class="fixed bottom-0 right-0 w-[160px] md:w-[320px]" src="" alt="" id="floppa" />
     </div>
-    <img class="fixed bottom-0 right-0 w-[160px] md:w-[320px]" src="" alt="" id="floppa" />
     <script>
       window.onload = () => {
         document.getElementById("floppa").src = `static/${Math.floor(Math.random() * 4)}.png`;
