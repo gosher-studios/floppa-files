@@ -1,4 +1,4 @@
-/target
-/files
-/static/main.css
-/settings.toml
+target/
+files/
+static/main.css
+config.toml

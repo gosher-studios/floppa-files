@@ -17,7 +17,7 @@
 <script>
 
   function qr(data, main) {
-    fetch(String("{{url}}qr/" + data)).then((response) => response.text())
+    fetch(String("{{url}}/qr/" + data)).then((response) => response.text())
       .then((svg) => {
         const parser = new DOMParser();
         const qrdoc = parser.parseFromString(svg, 'image/svg+xml');
