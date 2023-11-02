@@ -1,12 +1,23 @@
 {% extends "base.html" %} {% block content %}
+<label for="file" class="block sm:hidden p-4 text-4xl bg-fg rounded-md text-accent cursor-pointer text-center"><i class="fa-solid fa-file-arrow-up"></i> Select File</label>
 <div class="bg-fg p-4 rounded-md text-accent" id="list" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
-  <span class="text-white hidden sm:inline"># Upload files with curl:<br></span>
-  <span class="hidden sm:inline">$ curl -T (file) {{url}}<br><br></span>
-  <span class="text-white hidden sm:inline"># Or drag here to upload:<br></span>
-  <label for="file" class="text-accent text-4xl sm:text-lg cursor-pointer underline">Select File</label>
+  <div class="hidden sm:block">
+    <p class="text-white"># Upload files with curl:</p>
+    <p>$ curl -T (file) {{url}}</p>
+    <p class="text-white"># Or upload online:</p>
+    <label for="file" class="cursor-pointer underline text-xl"><i class="fa-solid fa-file-arrow-up"></i> Select or drag files</label>
+  </div>
+  <p class="text-white"># Uploaded files:</p>
   <div id="list" class="text-base"></div>
 </div>
 <input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);"/>
+<div class="bg-fg p-4 rounded-md text-accent" id="list">
+<div>
+    <p class="text-white"># Info:</p>
+    <p><i class="fa-solid fa-file"></i> {{max}} max file size</p>
+    <p><i class="fa-solid fa-database"></i> {{total}} files uploaded</p>
+    <p><i class="fa-solid fa-calendar-days"></i> Files kept forever</p>
+</div>
 <script>
   async function dropHandler(e) {
     e.preventDefault();
@@ -23,7 +34,6 @@
   }
 
   async function upload(files) {
-    console.log("upload");
     for (let i = 0; i < files.length; i++) {
       let file = files[i];
 
@@ -37,14 +47,12 @@
         headers: {
           'Content-Type': 'text/plain'
         }
-      }).catch(error => {
-        log.innerText = `Failed to Upload ${file.name}`;
       });
       if (res.status == 200) {
         let url = await res.text();
         log.innerHTML = `<a class="underline" href="${url}">${url}</a>`;
       } else {
-        log.innerHTML = `<img src="https://http.cat/${res.status}" />`;
+        log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
       }
     }
   }

@@ -65,6 +65,7 @@ struct Home {
   url: String,
   total: usize,
   max: String,
+  ver: String,
 }
 
 async fn home(req: Request<Config>) -> tide::Result {
@@ -74,6 +75,7 @@ async fn home(req: Request<Config>) -> tide::Result {
       url: conf.base_url,
       total: fs::read_dir("files").await?.count().await,
       max: format_size(conf.max_size.to_string()),
+      ver: env!("CARGO_PKG_VERSION").to_string(),
     }
     .render()?,
   );
