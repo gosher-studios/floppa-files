@@ -1,0 +1,57 @@
+{% extends "base.html" %} {% block content %}
+<label for="file" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" class="block p-4 text-4xl bg-fg rounded-md text-accent cursor-pointer text-center"><i class="fa-solid fa-file-arrow-up"></i> Select File</label>
+<div class="bg-fg p-4 rounded-md text-accent">
+  <div class="hidden sm:block">
+    <p class="text-white"># Upload files with curl:</p>
+    <p>$ curl -T (file) {{url}}</p>
+  </div>
+  <p class="text-white"># Uploaded files:</p>
+  <div id="list" class="text-base"></div>
+<input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);"/>
+<div>
+    <p class="text-white"># Info:</p>
+    <p><i class="fa-solid fa-file"></i> {{max}} max file size</p>
+    <p><i class="fa-solid fa-database"></i> {{total}} files uploaded</p>
+    <p><i class="fa-solid fa-circle-info"></i> By uploading, you agree to the <a class="underline" href="https://colon3.lol/#tos"> TOS </a> </p>
+
+</div>
+<script>
+  async function dropHandler(e) {
+    e.preventDefault();
+    let arr = Array.from([...e.dataTransfer.items]);
+    upload(arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()));
+    };
+
+  function dragOverHandler(e) {
+    e.preventDefault()
+  }
+
+  function uploadHandler(e) {
+    upload(Array.from([...e.target.files]));
+  }
+
+  async function upload(files) {
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+
+      let log = document.createElement("p");
+      log.innerText = `Uploading ${file.name}`;
+      document.getElementById("list").appendChild(log);
+
+      let res = await fetch(file.name, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      });
+      if (res.status == 200) {
+        let url = await res.text();
+        log.innerHTML = `<a class="underline" href="${url}">${url}</a>`;
+      } else {
+        log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
+      }
+    }
+  }
+</script>
+{% endblock %}
