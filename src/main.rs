@@ -11,10 +11,9 @@ use futures::StreamExt;
 use nanoid::nanoid;
 use qrcode::QrCode;
 use serde::Deserialize;
-use std::net::SocketAddr;
 use std::sync::Arc;
+use std::{net::SocketAddr, path::PathBuf};
 use tokio::sync::RwLock;
-
 use tokio::{
     fs::File,
     io::{AsyncWriteExt, BufWriter},
@@ -25,7 +24,7 @@ use tower_http::services::ServeDir;
 struct AppState {
     max_size: usize,
     url: String,
-    file_dir: String,
+    file_dir: PathBuf,
     listen: SocketAddr,
     #[serde(skip)]
     file_count: Arc<RwLock<usize>>,
@@ -35,22 +34,19 @@ struct AppState {
 async fn main() {
     let mut state: AppState =
         toml::from_str(&tokio::fs::read_to_string("config.toml").await.unwrap()).unwrap();
-    match tokio::fs::create_dir(&state.file_dir).await {
-        Ok(_) => {
-            println!("created files directory in {:?}", &state.file_dir)
-        }
-        Err(_) => {}
+    if tokio::fs::create_dir(&state.file_dir).await.is_ok() {
+        println!("created files directory in {:?}", &state.file_dir)
     };
     state.file_count = Arc::new(RwLock::new(
         std::fs::read_dir(&state.file_dir).unwrap().count(),
     ));
-    let addr = state.listen.clone();
+    let addr = state.listen;
     let app = Router::new()
         .route("/", get(home))
         .route("/:id", put(upload).get(download))
         .route("/qr/:id", get(qr))
         .layer(DefaultBodyLimit::max(state.max_size))
-        .nest_service("/static", ServeDir::new("/home/gsh/proj/backend/static"))
+        .nest_service("/static", ServeDir::new("static"))
         .with_state(state);
     println!("app initialized");
     axum::Server::bind(&addr)
@@ -68,15 +64,17 @@ async fn upload(
         + "."
         + &id
             .replace(
-                ['/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>'],
+                [
+                    '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
+                ],
                 "-",
             )
             .replace("%20", "-");
-    let path = state.file_dir + "/" + &res.to_string();
+    let path = state.file_dir.join(&res);
     let file = tokio::fs::File::create(&path).await.unwrap();
-t    let mut bug = BufWriter::new(file);
+    let mut bug = BufWriter::new(file);
     while let Some(chunk) = stream.next().await {
-        if let Err(_) = bug.write_all(chunk.unwrap().as_ref()).await {
+        if bug.write_all(chunk.unwrap().as_ref()).await.is_err() {
             bug.flush().await.unwrap();
             tokio::fs::remove_file(path.clone()).await.unwrap();
             break;
@@ -87,7 +85,7 @@ t    let mut bug = BufWriter::new(file);
 }
 
 async fn download(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    let meow = state.file_dir + "/" + &id;
+    let meow = state.file_dir.join(id);
     let file = match File::open(&meow).await {
         Ok(file) => file,
         Err(_) => return (StatusCode::NOT_FOUND).into_response(),

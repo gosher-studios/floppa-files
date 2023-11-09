@@ -15,10 +15,12 @@
     <p><i class="fa-solid fa-circle-info"></i> By uploading, you agree to the <a class="underline" href="https://colon3.lol/#tos"> TOS </a> </p>
 
 </div>
+<dialog>
+  <button autofocus>qr code </button> </dialog>
 <script>
   async function dropHandler(e) {
     e.preventDefault();
-    let arr = Array.from([...e.dataTransfer.items]);
+    let arr = [...e.dataTransfer.items];
     upload(arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()));
     };
 
@@ -27,14 +29,14 @@
   }
 
   function uploadHandler(e) {
-    upload(Array.from([...e.target.files]));
+    upload(Array.from(e.target.files));
   }
 
   async function upload(files) {
     for (let i = 0; i < files.length; i++) {
       let file = files[i];
 
-      let log = document.createElement("p");
+      let log = document.createElement("div");
       log.innerText = `Uploading ${file.name}`;
       document.getElementById("list").appendChild(log);
 
@@ -47,7 +49,15 @@
       });
       if (res.status == 200) {
         let url = await res.text();
-        log.innerHTML = `<a class="underline" href="${url}">${url}</a>`;
+        let el = document.createElement("p")
+        el.onclick = () => {
+            navigator.clipboard.writeText(`{{url}}`);
+        }
+        el.innerText = url
+        el.className = "cursor-pointer"
+        log.replaceWith(el)
+        console.log(el)
+        //log.innerHTML = `<a href="${url}" class="">${url}</a> <a class="underline" href="{{url}}/qr/${url}">generate qr</a> `;
       } else {
         log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
       }
