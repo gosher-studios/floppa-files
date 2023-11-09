@@ -11,8 +11,7 @@ use futures::StreamExt;
 use nanoid::nanoid;
 use qrcode::QrCode;
 use serde::Deserialize;
-use std::sync::Arc;
-use std::{net::SocketAddr, path::PathBuf};
+use std::{collections::HashMap, net::SocketAddr, path::PathBuf, sync::Arc};
 use tokio::sync::RwLock;
 use tokio::{
     fs::File,
@@ -20,6 +19,7 @@ use tokio::{
 };
 use tokio_util::io::ReaderStream;
 use tower_http::services::ServeDir;
+
 #[derive(Deserialize, Clone, Debug)]
 struct AppState {
     max_size: usize,
@@ -28,12 +28,15 @@ struct AppState {
     listen: SocketAddr,
     #[serde(skip)]
     file_count: Arc<RwLock<usize>>,
+    // #[serde(skip)]
+    // logs: Arc<RwLock<HashMap<String, Vec<String>>>>,
 }
 
 #[tokio::main]
 async fn main() {
     let mut state: AppState =
         toml::from_str(&tokio::fs::read_to_string("config.toml").await.unwrap()).unwrap();
+    // let mut logs: HashMap<String, Vec<String>> =
     if tokio::fs::create_dir(&state.file_dir).await.is_ok() {
         println!("created files directory in {:?}", &state.file_dir)
     };
@@ -51,9 +54,12 @@ async fn main() {
     println!("app initialized");
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown())
         .await
         .unwrap();
 }
+
+async fn shutdown() {}
 
 async fn upload(
     Path(id): Path<String>,
