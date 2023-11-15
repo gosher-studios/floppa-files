@@ -65,7 +65,7 @@ function qr(data, main) {
         let url = await res.text();
         let el = document.createElement("div")
         el.onclick = () => {
-           navigator.clipboard.writeText(`${url}`);
+           navigator.clipboard.writeText(`{{url}}/${url}`);
         }
         el.innerText = url
         el.className = "cursor-pointer flex flex-row "
