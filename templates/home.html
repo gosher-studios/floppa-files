@@ -31,7 +31,21 @@
   function uploadHandler(e) {
     upload(Array.from(e.target.files));
   }
-
+function qr(data, main) {
+    fetch(String("{{url}}/qr/" + data)).then((response) => response.text())
+      .then((svg) => {
+        const parser = new DOMParser();
+        const qrdoc = parser.parseFromString(svg, 'image/svg+xml');
+        const qr = qrdoc.documentElement;
+        qr.setAttribute("height", 250);
+        qr.setAttribute("width", 250);
+        main.appendChild(qr);
+        return qr;
+      }).catch((err) => {
+        console.error('fuck you', err);
+        return "static/download.svg";
+      });
+  };
   async function upload(files) {
     for (let i = 0; i < files.length; i++) {
       let file = files[i];
@@ -59,14 +73,13 @@
         let show = document.createElement("div")
          show.innerText = "Show Qr"
          let dialog = document.createElement("dialog")
-         let img = document.createElement("img")
-         img.src = "{{url}}/qr/" + url
-         img.alt = "Qr Code"
-         img.className = "w-full h-full"
-         dialog.appendChild(img)
+         img = qr(url,dialog);
          show.onclick = () => {
                dialog.showModal()
          }
+         dialog.addEventListener("click", (e) => {
+              dialog.close()
+            });
          document.body.appendChild(dialog)
          el.appendChild(show)
         //log.innerHTML = `<a href="${url}" class="">${url}</a> <a class="underline" href="{{url}}/qr/${url}">generate qr</a> `;
