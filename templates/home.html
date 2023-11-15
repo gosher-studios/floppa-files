@@ -51,13 +51,26 @@
         let url = await res.text();
         let el = document.createElement("p")
         el.onclick = () => {
-            navigator.clipboard.writeText(`{{url}}`);
+           navigator.clipboard.writeText(`${url}`);
         }
         el.innerText = url
         el.className = "cursor-pointer"
         log.replaceWith(el)
-        console.log(el)
+        let show = document.createElement("p")
+         show.innerText = "Cock"
+         let dialog = document.createElement("dialog")
+         let img = document.createElement("img")
+         img.src = "{{url}}/qr/" + url
+         img.alt = "Qr Code"
+         img.className = "w-full h-full"
+         dialog.appendChild(img)
+         show.onclick = () => {
+               dialog.showModal()
+         }
+         document.body.appendChild(dialog)
+         el.appendChild(show)
         //log.innerHTML = `<a href="${url}" class="">${url}</a> <a class="underline" href="{{url}}/qr/${url}">generate qr</a> `;
+
       } else {
         log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
       }
