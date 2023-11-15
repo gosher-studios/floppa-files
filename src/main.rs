@@ -9,7 +9,6 @@ use axum::{
 };
 use futures::StreamExt;
 use nanoid::nanoid;
-use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, path::PathBuf, sync::Arc};
 use tokio::{
@@ -165,12 +164,12 @@ fn format_size(size: String) -> String {
 
 async fn qr(Path(id): Path<String>, State(state): State<AppState>) -> Response {
     let url = state.url + &id;
-    let qr = QrCode::new(url.as_bytes())
-        .unwrap()
-        .render()
-        .min_dimensions(100, 100)
-        .dark_color("#fff")
-        .light_color("#000")
-        .build();
+    let qr = qrcode_generator::to_svg_to_string(
+        url,
+        qrcode_generator::QrCodeEcc::Low,
+        200,
+        None::<&str>,
+    )
+    .unwrap();
     (StatusCode::OK, qr).into_response()
 }

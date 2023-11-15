@@ -49,15 +49,15 @@
       });
       if (res.status == 200) {
         let url = await res.text();
-        let el = document.createElement("p")
+        let el = document.createElement("div")
         el.onclick = () => {
            navigator.clipboard.writeText(`${url}`);
         }
         el.innerText = url
         el.className = "cursor-pointer"
         log.replaceWith(el)
-        let show = document.createElement("p")
-         show.innerText = "Cock"
+        let show = document.createElement("div")
+         show.innerText = "Show Qr"
          let dialog = document.createElement("dialog")
          let img = document.createElement("img")
          img.src = "{{url}}/qr/" + url
