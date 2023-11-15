@@ -68,10 +68,10 @@ function qr(data, main) {
            navigator.clipboard.writeText(`${url}`);
         }
         el.innerText = url
-        el.className = "cursor-pointer"
+        el.className = "cursor-pointer flex flex-row "
         log.replaceWith(el)
         let show = document.createElement("div")
-         show.innerText = "Show Qr"
+         show.innerText = "Show Qr Code"
          let dialog = document.createElement("dialog")
          img = qr(url,dialog);
          show.onclick = () => {
