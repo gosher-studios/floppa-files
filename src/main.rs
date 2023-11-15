@@ -120,8 +120,8 @@ async fn upload(
 }
 
 async fn download(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    let meow = state.file_dir.join(id);
-    let file = match File::open(&meow).await {
+    let pos = state.file_dir.join(id);
+    let file = match File::open(&pos).await {
         Ok(file) => file,
         Err(_) => return (StatusCode::NOT_FOUND).into_response(),
     };
