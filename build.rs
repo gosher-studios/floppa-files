@@ -5,12 +5,12 @@ fn main() {
         Command::new("cmd")
             .args([
                 "/C",
-                "tailwind -i templates/main.css -o static/main.css --minify",
+                "tailwindcss -i templates/main.css -o static/main.css --minify",
             ])
             .output()
             .expect("failed to run tailwind, is tailwind installed????")
     } else {
-        Command::new("tailwind")
+        Command::new("tailwindcss")
             .args([
                 "-i",
                 "templates/main.css",
