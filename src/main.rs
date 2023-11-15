@@ -74,7 +74,6 @@ async fn main() {
             println!("shutting down");
             let mut file = File::create("logfile").await.unwrap();
             let writer = bincode::serialize(&*state.logs.read_owned().await);
-            // file.write(&writer.unwrap()).await.unwrap();
             file.write_all(&writer.unwrap()).await.unwrap();
         })
         .await
