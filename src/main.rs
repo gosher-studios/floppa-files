@@ -111,7 +111,7 @@ async fn upload(
         .logs
         .write()
         .await
-        .entry(addr.to_string())
+        .entry(addr.ip().to_string())
         .or_insert(vec![Arc::clone(&res).to_string()])
         .push(Arc::clone(&res).to_string());
     *state.file_count.write().await += 1;
