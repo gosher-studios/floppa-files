@@ -10,7 +10,7 @@ fn main() {
             .output()
             .expect("failed to run tailwind, is tailwind installed????")
     } else {
-        Command::new("tailwind")
+        Command::new("tailwindcss")
             .args([
                 "-i",
                 "templates/main.css",

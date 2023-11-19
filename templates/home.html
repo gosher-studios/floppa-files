@@ -8,6 +8,9 @@
   <p class="text-white"># Uploaded files:</p>
   <div id="list" class="text-base"></div>
 <input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);"/>
+<dialog id="dialog"> 
+ <div> </div>
+</dialog>
 <div>
     <p class="text-white"># Info:</p>
     <p><i class="fa-solid fa-file"></i> {{max}} max file size</p>
@@ -18,6 +21,8 @@
 <dialog>
   <button autofocus>qr code </button> </dialog>
 <script>
+  const dialogEl = document.getElementById("dialog");
+
   async function dropHandler(e) {
     e.preventDefault();
     let arr = [...e.dataTransfer.items];
@@ -31,16 +36,14 @@
   function uploadHandler(e) {
     upload(Array.from(e.target.files));
   }
-function qr(data, main) {
+function qr(data) {
     fetch(String("{{url}}/qr/" + data)).then((response) => response.text())
       .then((svg) => {
         const parser = new DOMParser();
         const qrdoc = parser.parseFromString(svg, 'image/svg+xml');
         const qr = qrdoc.documentElement;
-        qr.setAttribute("height", 250);
-        qr.setAttribute("width", 250);
-        main.appendChild(qr);
-        return qr;
+        qr.onclick = () => dialogEl.close();
+        dialogEl.children[0].replaceWith(qr)
       }).catch((err) => {
         console.error('fuck you', err);
         return "static/download.svg";
@@ -61,29 +64,25 @@ function qr(data, main) {
           'Content-Type': 'text/plain'
         }
       });
-      if (res.status == 200) {
+      if (res.status == 200) {        
         let url = await res.text();
+
         let el = document.createElement("div")
         el.onclick = () => {
            navigator.clipboard.writeText(`{{url}}/${url}`);
         }
-        el.innerText = url
+        el.innerText = url.substring( 9 , 26) 
         el.className = "cursor-pointer flex flex-row "
         log.replaceWith(el)
+
         let show = document.createElement("div")
          show.innerText = "Show Qr Code"
-         let dialog = document.createElement("dialog")
-         img = qr(url,dialog);
+        show.style.marginleft = "6px"
          show.onclick = () => {
-               dialog.showModal()
+            dialogEl.show();
+            qr(url)
          }
-         dialog.addEventListener("click", (e) => {
-              dialog.close()
-            });
-         document.body.appendChild(dialog)
          el.appendChild(show)
-        //log.innerHTML = `<a href="${url}" class="">${url}</a> <a class="underline" href="{{url}}/qr/${url}">generate qr</a> `;
-
       } else {
         log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
       }
