@@ -70,14 +70,17 @@ function qr(data) {
         let el = document.createElement("div")
         el.onclick = () => {
            navigator.clipboard.writeText(`{{url}}/${url}`);
+           temp = el.innerText;
+           el.innerText = "copied to clipboard";
+           setTimeout(() => {el.innerText = temp},1000);
         }
         el.innerText = url.substring( 9 , 26) 
-        el.className = "cursor-pointer flex flex-row "
+        el.className = "cursor-pointer flex flex-row select-none "
         log.replaceWith(el)
 
         let show = document.createElement("div")
-         show.innerText = "Show Qr Code"
-        show.style.marginleft = "6px"
+         show.innerText = "generate qr"
+        show.className = "px-6"
          show.onclick = () => {
             dialogEl.show();
             qr(url)
