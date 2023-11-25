@@ -57,6 +57,7 @@ function qr(data) {
       log.innerText = `Uploading ${file.name}`;
       document.getElementById("list").appendChild(log);
 
+      createToast(`Uploading ${file.name}`);
       let res = await fetch(file.name, {
         method: 'PUT',
         body: file,
@@ -68,16 +69,15 @@ function qr(data) {
         let url = await res.text();
 
         let el = document.createElement("div")
-        el.onclick = () => {
+        let file = document.createElement("div"); 
+        file.onclick = () => { 
            navigator.clipboard.writeText(`{{url}}/${url}`);
-           temp = el.innerText;
-           el.innerText = "copied to clipboard";
-           setTimeout(() => {el.innerText = temp},1000);
+           createToast("Copied to clipboard")
         }
-        el.innerText = url.substring( 9 , 26) 
+        file.innerText = url.substring( 9 , 26) 
         el.className = "cursor-pointer flex flex-row select-none "
         log.replaceWith(el)
-
+        el.appendChild(file);
         let show = document.createElement("div")
          show.innerText = "generate qr"
         show.className = "px-6"
@@ -91,5 +91,19 @@ function qr(data) {
       }
     }
   }
+
+  const container = document.getElementById("toast-container")
+
+  function createToast(message) {
+      const toast = document.createElement('div');
+      toast.innerText = message; 
+      toast.className = "text-white overflow-none bg-bg border-2 border-fg m-2 p-1";
+      container.appendChild(toast);
+      setTimeout(() => {
+         toast.remove();
+      } , 2500)
+  }
 </script>
 {% endblock %}
+
+

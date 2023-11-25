@@ -9,6 +9,14 @@ fn main() {
             ])
             .output()
             .expect("failed to run tailwind, is tailwind installed????")
+    } else if cfg!(target_os = "macos") {
+        Command::new("sh")
+            .args([
+                "-c",
+                "tailwindcss -i templates/main.css -o static/main.css --minify",
+            ])
+            .output()
+            .expect("failed to run tailwind, is tailwind installed????")
     } else {
         Command::new("tailwind")
             .args([
