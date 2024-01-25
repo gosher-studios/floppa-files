@@ -1,39 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Floppa Files</title>
+    <link rel="stylesheet" href="/static/main.css" />
+    <meta content="Floppa Files" property="og:title" />
+    <meta content="meow meow mrrp" property="og:description" />
+    <meta content="{{url}}" property="og:url" />
+    <link rel="icon" type="image/png" href="static/icon.png" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=clash-display@600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://kit.fontawesome.com/ea5efe8481.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
 
-<head>
-   <meta charset="utf-8" />
-   <meta name="viewport" content="width=device-width,initial-scale=1" />
-   <title>Floppa Files</title>
-   <link rel="stylesheet" href="/static/main.css">
-   <meta content="Floppa Files" property="og:title" />
-   <meta content="meow meow mrrp" property="og:description" />
-   <meta content="{{url}}" property="og:url" />
-   <link rel="icon" type="image/png" href="static/icon.png" />
-   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&amp;display=swap" rel="stylesheet">
-   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&amp;display=swap" rel="stylesheet">
-   <script src="https://kit.fontawesome.com/ea5efe8481.js" crossorigin="anonymous"></script>
-</head>
-
-<body class="bg-bg font-mono flex justify-center sm:text-lg">
-   <div id="toast-container"
-      class="flex flex-col justify-center items-center fixed top-0 right-0 p-4  w-fit    overflow-hidden text-xl">
-   </div>
-   <div class="p-6 w-full lg:w-[1024px] h-full space-y-4">
-      <h1 class="text-5xl md:text-7xl font-display text-white text-center">Floppa Files</h1>
+  <body class="bg-bg font-mono flex justify-center sm:text-lg">
+    <div
+      id="toast-container"
+      class="flex flex-col justify-center items-center fixed top-0 right-0 p-4 w-fit overflow-hidden text-xl"
+    ></div>
+    <div class="p-6 w-full lg:w-[1024px] h-full space-y-4">
+      <h1 class="text-5xl md:text-7xl font-display text-white text-center">
+        Floppa Files
+      </h1>
       {% block content %}{% endblock %}
-      <img class="fixed bottom-0 right-0 w-[160px] md:w-[320px]" src="" alt="" id="floppa" />
+      <img
+        class="fixed bottom-0 right-0 w-[160px] md:w-[320px]"
+        src=""
+        alt=""
+        id="floppa"
+      />
       <div class="fixed bottom-2 left-2 text-sm md:text-base">
-         v{{ver}}
-         <a href="https://github.com/gosher-studios/floppa-files" target="_blank" class="underline">
-            <i class="fa-brands fa-github"></i> View on GitHub</a>
+        v{{ver}}
+        <a
+          href="https://github.com/gosher-studios/floppa-files"
+          target="_blank"
+          class="underline"
+        >
+          <i class="fa-brands fa-github"></i> View on GitHub</a
+        >
       </div>
-   </div>
-   <script>
+    </div>
+    <script>
       window.onload = () => {
-         document.getElementById("floppa").src = `static/${Math.floor(Math.random() * 4)}.png`;
-      }
-   </script>
-</body>
-
+        document.getElementById("floppa").src = `static/${Math.floor(
+          Math.random() * 4
+        )}.png`;
+      };
+    </script>
+  </body>
 </html>
