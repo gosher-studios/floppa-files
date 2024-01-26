@@ -1,175 +1,152 @@
+mod config;
+mod log;
+
 use askama::Template;
 use axum::{
-    body::StreamBody,
-    extract::{BodyStream, ConnectInfo, DefaultBodyLimit, Path, State},
-    http::StatusCode,
+    body::Body,
+    extract::{ConnectInfo, DefaultBodyLimit, Path, State},
+    http::{StatusCode, HeaderMap},
     response::{IntoResponse, Response},
     routing::{get, put},
     Router,
 };
-use futures::StreamExt;
+use futures::TryStreamExt;
+use config::Config;
+use log::Logger;
 use nanoid::nanoid;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, net::SocketAddr, path::PathBuf, sync::Arc};
+use tracing::{info, debug, error};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::{
     fs::File,
     io::{AsyncWriteExt, BufWriter},
     signal,
+    net::TcpListener,
 };
 use tokio::{io::AsyncReadExt, sync::RwLock};
-use tokio_util::io::ReaderStream;
 use tower_http::services::ServeDir;
+use tracing_subscriber::{filter::EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use humansize::{format_size, DECIMAL};
 
-#[derive(Deserialize, Clone, Debug, Serialize)]
+pub type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+#[derive(Debug)]
 struct AppState {
-    max_size: usize,
-    url: String,
-    file_dir: PathBuf,
-    listen: SocketAddr,
-    #[serde(skip)]
-    file_count: Arc<RwLock<usize>>,
-    #[serde(skip)]
-    logs: Arc<RwLock<HashMap<String, Vec<String>>>>,
+    file_count: RwLock<usize>,
+    config: Config,
+    logger: Logger,
 }
 
-#[tokio::main]
-async fn main() {
-    let mut state: AppState =
-        toml::from_str(&tokio::fs::read_to_string("config.toml").await.unwrap()).unwrap();
-    if tokio::fs::File::open("logfile").await.is_err() {
-        let mut empty = tokio::fs::File::create("logfile").await.unwrap();
-        let mut hash: HashMap<String, Vec<String>> = HashMap::new();
-        let vecr: Vec<String> = vec!["meow.sh".to_string()];
-        hash.insert("0.0.0.0".to_string(), vecr);
-        let serialized = bincode::serialize(&hash).unwrap();
-        empty.write_all(&serialized).await.unwrap();
-        empty.shutdown().await.unwrap();
-        println!("created empty log file");
+type ArcState = Arc<AppState>;
+
+struct AppError(std::io::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        error!("{}", self.0);
+        StatusCode::INTERNAL_SERVER_ERROR.into_response()
     }
-    let mut file = tokio::fs::File::open("logfile").await.unwrap();
-    let mut output = vec![];
-    file.read_to_end(&mut output).await.unwrap();
-    let load: HashMap<String, Vec<String>> = bincode::deserialize(&output).unwrap();
-    state.logs = Arc::new(RwLock::new(load));
-    if tokio::fs::create_dir(&state.file_dir).await.is_ok() {
-        println!("created files directory in {:?}", &state.file_dir)
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(value: std::io::Error) -> Self {
+        Self(value)
+    }
+}
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[tokio::main]
+async fn main() -> Result {
+    tracing_subscriber::registry()
+        .with(
+            EnvFilter::try_from_default_env()
+                .or_else(|_| EnvFilter::try_new("info"))
+                .unwrap(),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    let config =
+        config::load(std::env::var("FLOPPA_CONFIG").unwrap_or("config.toml".into())).await?;
+
+    let logger = Logger::new(&config.log_file);
+
+    if tokio::fs::create_dir(&config.file_dir).await.is_ok() {
+        info!("created files directory in {:?}", &config.file_dir)
     };
-    state.file_count = Arc::new(RwLock::new(
-        std::fs::read_dir(&state.file_dir).unwrap().count(),
-    ));
-    let addr = state.listen;
+
+    let state = Arc::new(AppState {
+        file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
+        config: config.clone(),
+        logger,
+    });
+
+    let serve_files = ServeDir::new(&config.file_dir);
+
     let app = Router::new()
         .route("/", get(home))
-        .route("/:id", put(upload).get(download))
-        .route("/qr/:id", get(qr))
-        .layer(DefaultBodyLimit::max(state.max_size))
+        .route("/:id", put(upload).get_service(serve_files))
+        .layer(DefaultBodyLimit::max(config.max_size))
         .nest_service("/static", ServeDir::new("static"))
-        .with_state(state.clone().to_owned());
-    println!("app initialized");
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(async {
-            signal::ctrl_c().await.unwrap();
-            println!("shutting down");
-            let mut file = File::create("logfile").await.unwrap();
-            let writer = bincode::serialize(&*state.logs.read_owned().await);
-            file.write_all(&writer.unwrap()).await.unwrap();
-        })
-        .await
-        .unwrap();
+        .with_state(state);
+
+    let listener = TcpListener::bind(&config.listen).await?;
+    info!("server listening on http://{}", listener.local_addr()?);
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
+
+    Ok(())
 }
 
 async fn upload(
     Path(id): Path<String>,
-    State(state): State<AppState>,
+    State(state): State<ArcState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    mut stream: BodyStream,
-) -> Response {
-    let res: Arc<String> = Arc::new(
-        nanoid!(8)
-            + "."
-            + &id
-                .replace(
-                    [
-                        '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
-                    ],
-                    "-",
-                )
-                .replace("%20", "-"),
+    body: Body,
+) -> std::result::Result<Response, AppError> {
+    let file_name = id.replace(
+        [
+            '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
+        ],
+        "-",
     );
-    let path = state.file_dir.join(Arc::clone(&res).to_string());
-    let file = tokio::fs::File::create(&path).await.unwrap();
-    let mut bug = BufWriter::new(file);
-    while let Some(chunk) = stream.next().await {
-        if bug.write_all(chunk.unwrap().as_ref()).await.is_err() {
-            bug.flush().await.unwrap();
-            tokio::fs::remove_file(path.clone()).await.unwrap();
-            break;
-        }
+    let file_name = format!("{}.{}", nanoid!(8), file_name);
+    let path = state.config.file_dir.join(&file_name);
+    let mut file = tokio::fs::File::create(&path).await.unwrap();
+
+    let mut reader = tokio_util::io::StreamReader::new(
+        body.into_data_stream()
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
+    );
+    if let Err(error) = tokio::io::copy(&mut reader, &mut file).await {
+        debug!("removing failed upload {}", &file_name);
+        tokio::fs::remove_file(&path).await?;
+        Err(error.into())
+    } else {
+        state
+            .logger
+            .log(format!("{} uploaded {}", &addr, &file_name))?;
+        *state.file_count.write().await += 1;
+
+        Ok(file_name.into_response())
     }
-    state
-        .logs
-        .write()
-        .await
-        .entry(addr.ip().to_string())
-        .or_insert(vec![Arc::clone(&res).to_string()])
-        .push(Arc::clone(&res).to_string());
-    *state.file_count.write().await += 1;
-
-    (StatusCode::OK, res.to_string()).into_response()
-}
-
-async fn download(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    let pos = state.file_dir.join(id);
-    let file = match File::open(&pos).await {
-        Ok(file) => file,
-        Err(_) => return (StatusCode::NOT_FOUND).into_response(),
-    };
-    let stream = ReaderStream::new(file);
-    let body = StreamBody::new(stream);
-    (StatusCode::OK, body).into_response()
 }
 
 #[derive(Template)]
 #[template(path = "home.html")]
 struct Home {
-    url: String,
     total: usize,
     max: String,
-    ver: String,
+    ver: &'static str,
 }
-async fn home(State(state): State<AppState>) -> Home {
+
+async fn home(State(state): State<ArcState>) -> Home {
     Home {
-        url: state.url,
         total: *state.file_count.read().await,
-        max: format_size(state.max_size.to_string()),
-        ver: "4".to_string(),
+        max: format_size(state.config.max_size, DECIMAL),
+        ver: VERSION,
     }
-}
-
-fn format_size(size: String) -> String {
-    let sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
-    let mut take = size.len() % 3;
-    let mut modifier = 0;
-    if take == 0 {
-        take = 3;
-        modifier = 1;
-    }
-    format!(
-        "{}{}",
-        size.chars().take(take).collect::<String>(),
-        sizes[size.len() / 3 - modifier]
-    )
-}
-
-async fn qr(Path(id): Path<String>, State(state): State<AppState>) -> Response {
-    let url = state.url + &id;
-    let qr = qrcode_generator::to_svg_to_string(
-        url,
-        qrcode_generator::QrCodeEcc::Low,
-        200,
-        None::<&str>,
-    )
-    .unwrap();
-    (StatusCode::OK, qr).into_response()
 }
