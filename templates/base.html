@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="/static/main.css" />
     <meta content="Floppa Files" property="og:title" />
     <meta content="meow meow mrrp" property="og:description" />
-    <meta content="{{url}}" property="og:url" />
-    <link rel="icon" type="image/png" href="static/icon.png" />
+    <!-- meta content="FIXME" property="og:url" /-->
+    <link rel="icon" type="image/png" href="/static/icon.png" />
     <link
       href="https://api.fontshare.com/v2/css?f[]=clash-display@600&amp;display=swap"
       rel="stylesheet"
@@ -23,7 +23,7 @@
     ></script>
   </head>
 
-  <body class="bg-bg font-mono flex justify-center sm:text-lg">
+  <body class="bg-bg font-mono flex justify-center sm:text-lg text-accent">
     <div
       id="toast-container"
       class="flex flex-col justify-center items-center fixed top-0 right-0 p-4 w-fit overflow-hidden text-xl"
@@ -41,13 +41,14 @@
       />
       <div class="fixed bottom-2 left-2 text-sm md:text-base">
         v{{ver}}
+        <br />
         <a
           href="https://github.com/gosher-studios/floppa-files"
           target="_blank"
           class="underline"
         >
-          <i class="fa-brands fa-github"></i> View on GitHub</a
-        >
+          <i class="fa-brands fa-github"></i>View on GitHub
+        </a>
       </div>
     </div>
     <script>
