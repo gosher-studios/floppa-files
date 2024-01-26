@@ -1,5 +1,5 @@
-/target
-/files
+target/
+files/
 logfile
 static/main.css
 config.toml
