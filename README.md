@@ -13,12 +13,8 @@ You need [nodejs](https://nodejs.org/,) along with npm & npx for tailwindcss
 cargo build --bin server # add --release for a release build
 ```
 
+## TODO
 
-
-Features to be added by pandarose:
-cool compression/decompression(lz4_flex server side lz4js client side)
-if download through web browser send file + js to decompress, cool ui showing download, cache
-
-fix files.colon3.lol ui ()
-
-make other cool features,
+- [ ] compression
+- [ ] cool ui showing download
+- [ ] make other cool features
