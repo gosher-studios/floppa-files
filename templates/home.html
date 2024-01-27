@@ -5,7 +5,7 @@
   ondragover="dragOverHandler(event);"
   class="block p-4 text-4xl bg-fg rounded-md cursor-pointer text-center"
 >
-  <i class="fa-solid fa-file-arrow-up"></i> Select File(s)
+  <i class="fa-solid fa-file-arrow-up"></i> Select Files
 </label>
 <div class="bg-fg p-4 rounded-md">
   <p class="text-white hidden" id="list-title"># Uploaded files:</p>
@@ -52,5 +52,6 @@
   document.getElementById("curl").innerText = location.origin;
   document.getElementById("max").innerText = prettyFileSize(maxSize);
 </script>
+<script src="/static/qrcode.min.js"></script>
 <script src="/static/index.js"></script>
 {% endblock %}

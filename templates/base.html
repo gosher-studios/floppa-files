@@ -22,11 +22,18 @@
       crossorigin="anonymous"
     ></script>
   </head>
-
   <body class="bg-bg font-mono flex justify-center sm:text-lg text-accent">
     <div
+      class="hidden inset-0 flex flex-col items-center justify-center bg-bg/75 z-50"
+      id="qr-container"
+      onclick="closeQr();"
+    >
+      <div id="qr" class="bg-white p-2 rounded-md"></div>
+      <p class="text-md">Click anywhere to exit.</p>
+    </div>
+    <div
       id="toast-container"
-      class="flex flex-col items-end fixed top-2 right-2 space-y-2"
+      class="flex flex-col items-end fixed top-2 right-2 space-y-1"
     ></div>
     <div class="p-6 w-full lg:w-[1024px] h-full space-y-4">
       <h1 class="text-5xl md:text-7xl font-display text-white text-center">

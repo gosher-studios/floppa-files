@@ -1,3 +1,4 @@
+use std::fs;
 use std::process::Command;
 
 const TAILWIND_VERSION: &str = "3.4.1";
@@ -13,5 +14,7 @@ fn main() {
       .as_str(),
     ])
     .output()
-    .expect("failed to run tailwind, is npm installed???????");
+    .expect("failed to run tailwind, is npm installed??????");
+  fs::copy("qrcodejs/qrcode.min.js", "static/qrcode.min.js")
+    .expect("could not copy qrcodejs, did you clone submodules????");
 }

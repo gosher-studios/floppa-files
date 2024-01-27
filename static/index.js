@@ -14,21 +14,23 @@ const uploadHandler = (e) => {
   upload(Array.from(e.target.files));
 };
 
-const showQr = (data) => {
-  alert("unimplemented");
-  /*fetch("FIXME/qr/" + data)
-      .then((response) => response.text())
-      .then((svg) => {
-        const parser = new DOMParser();
-        const qrdoc = parser.parseFromString(svg, "image/svg+xml");
-        const qr = qrdoc.documentElement;
-        qr.onclick = () => dialogEl.close();
-        dialogEl.children[0].replaceWith(qr);
-      })
-      .catch((err) => {
-        console.error("fuck you", err);
-        return "static/download.svg";
-      });*/
+const qr = new QRCode(document.getElementById("qr"), {
+  text: "",
+  width: 320,
+  height: 320,
+  colorDark: "#000000",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.M,
+});
+
+const showQr = (url) => {
+  document.getElementById("qr-container").classList.replace("hidden", "fixed");
+  qr.clear();
+  qr.makeCode(url);
+};
+
+const closeQr = () => {
+  document.getElementById("qr-container").classList.replace("fixed", "hidden");
 };
 
 const upload = async (files) => {
@@ -51,13 +53,15 @@ const upload = async (files) => {
         "Content-Type": "application/octet-stream",
       },
     });
+    // ideally we should error handle if await fetch fails buttttt :3
     if (res.status == 200) {
-      let url = await res.text();
-      createToast(`Uploaded ${url}`);
-      
+      let fileName = await res.text();
+      let url = `${location.origin}/${fileName}`;
+      createToast(`Uploaded ${fileName}`);
+
       let newLog = document.createElement("div");
-      newLog.className = "space-x-2"
-      
+      newLog.className = "space-x-2";
+
       let qr = document.createElement("span");
       qr.innerText = "qr";
       qr.className = "underline cursor-pointer";
@@ -65,16 +69,15 @@ const upload = async (files) => {
         showQr(url);
       };
       newLog.appendChild(qr);
-      
+
       let file = document.createElement("span");
       file.onclick = () => {
-        navigator.clipboard.writeText(`${location.origin}/${url}`);
+        navigator.clipboard.writeText(url);
         createToast("Copied to clipboard");
       };
       file.className = "underline cursor-pointer";
-      file.innerText = url;
+      file.innerText = fileName;
       newLog.appendChild(file);
-
 
       log.replaceWith(newLog);
       fileCount++;
