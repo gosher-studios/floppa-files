@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -26,7 +26,7 @@
   <body class="bg-bg font-mono flex justify-center sm:text-lg text-accent">
     <div
       id="toast-container"
-      class="flex flex-col justify-center items-center fixed top-0 right-0 p-4 w-fit overflow-hidden text-xl"
+      class="flex flex-col items-end fixed top-2 right-2 space-y-2"
     ></div>
     <div class="p-6 w-full lg:w-[1024px] h-full space-y-4">
       <h1 class="text-5xl md:text-7xl font-display text-white text-center">
@@ -52,11 +52,8 @@
       </div>
     </div>
     <script>
-      window.onload = () => {
-        document.getElementById("floppa").src = `static/${Math.floor(
-          Math.random() * 4
-        )}.png`;
-      };
+      document.getElementById("floppa").src =
+        `static/${Math.floor(Math.random() * 4)}.png`;
     </script>
   </body>
 </html>

@@ -1,27 +1,20 @@
-const dialogEl = document.getElementById("dialog");
-const totalEl = document.getElementById("total");
-
-function updateTotal() {
-  totalEl.innerText = fileCount;
-}
-
-async function dropHandler(e) {
+const dropHandler = async (e) => {
   e.preventDefault();
   let arr = [...e.dataTransfer.items];
   upload(
-    arr.filter((item) => item.kind == "file").map((item) => item.getAsFile())
+    arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()),
   );
-}
+};
 
-function dragOverHandler(e) {
+const dragOverHandler = (e) => {
   e.preventDefault();
-}
+};
 
-function uploadHandler(e) {
+const uploadHandler = (e) => {
   upload(Array.from(e.target.files));
-}
+};
 
-function qr(data) {
+const showQr = (data) => {
   alert("unimplemented");
   /*fetch("FIXME/qr/" + data)
       .then((response) => response.text())
@@ -36,15 +29,21 @@ function qr(data) {
         console.error("fuck you", err);
         return "static/download.svg";
       });*/
-}
+};
 
-async function upload(files) {
+const upload = async (files) => {
   for (let file of files) {
+    if (file.size > maxSize) {
+      createToast(`${file.name} is larger than ${prettyFileSize(maxSize)}`);
+      continue;
+    }
+    document.getElementById("list-title").classList.remove("hidden");
     let log = document.createElement("div");
-    log.innerText = `Uploading ${file.name}`;
+    let msg = `Uploading ${file.name}`;
+    log.innerText = msg;
     document.getElementById("list").appendChild(log);
+    createToast(msg);
 
-    createToast(`Uploading ${file.name}`);
     let res = await fetch(`/${file.name}`, {
       method: "PUT",
       body: file,
@@ -54,45 +53,46 @@ async function upload(files) {
     });
     if (res.status == 200) {
       let url = await res.text();
-
+      createToast(`Uploaded ${url}`);
+      
       let newLog = document.createElement("div");
-      let show = document.createElement("div");
-      let file = document.createElement("div");
-
-      newLog.classList.add("cursor-pointer", "flex", "flex-row", "select-none");
-
+      newLog.className = "space-x-2"
+      
+      let qr = document.createElement("span");
+      qr.innerText = "qr";
+      qr.className = "underline cursor-pointer";
+      qr.onclick = () => {
+        showQr(url);
+      };
+      newLog.appendChild(qr);
+      
+      let file = document.createElement("span");
       file.onclick = () => {
         navigator.clipboard.writeText(`${location.origin}/${url}`);
         createToast("Copied to clipboard");
       };
+      file.className = "underline cursor-pointer";
       file.innerText = url;
       newLog.appendChild(file);
 
-      show.innerText = "generate qr";
-      show.classList.add("px-6");
-      show.onclick = () => {
-        dialogEl.show();
-        qr(url);
-      };
-      newLog.appendChild(show);
 
       log.replaceWith(newLog);
+      fileCount++;
+      document.getElementById("total").innerText = fileCount;
     } else {
       let img = document.createElement("img");
       img.src = `https://http.cat/${res.status}`;
       log.replaceWith(img);
     }
   }
-}
+};
 
-const container = document.getElementById("toast-container");
-
-function createToast(message) {
+const createToast = (msg) => {
   const toast = document.createElement("div");
-  toast.innerText = message;
-  toast.className = "text-white overflow-none bg-bg border-2 border-fg m-2 p-1";
-  container.appendChild(toast);
+  toast.innerText = msg;
+  toast.className = "bg-bg border-2 border-fg p-1";
+  document.getElementById("toast-container").appendChild(toast);
   setTimeout(() => {
     toast.remove();
   }, 2500);
-}
+};

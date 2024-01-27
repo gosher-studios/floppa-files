@@ -1,30 +1,40 @@
 {% extends "base.html" %} {% block content %}
-<label for="file" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);"
-  class="block p-4 text-4xl bg-fg rounded-md cursor-pointer text-center"><i class="fa-solid fa-file-arrow-up"></i>
-  Select File(s)</label>
+<label
+  for="file"
+  ondrop="dropHandler(event);"
+  ondragover="dragOverHandler(event);"
+  class="block p-4 text-4xl bg-fg rounded-md cursor-pointer text-center"
+>
+  <i class="fa-solid fa-file-arrow-up"></i> Select File(s)
+</label>
 <div class="bg-fg p-4 rounded-md">
-  <p class="text-white"># Uploaded files:</p>
+  <p class="text-white hidden" id="list-title"># Uploaded files:</p>
   <div id="list" class="text-base"></div>
   <div class="hidden sm:block">
     <p class="text-white"># Upload files with curl:</p>
     <code>$ curl -T (file) <span id="curl"></span></code>
   </div>
-  <input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);" />
-  <dialog id="dialog">
-    <div></div>
-  </dialog>
+  <input
+    id="file"
+    type="file"
+    class="hidden"
+    multiple
+    onchange="uploadHandler(event);"
+  />
   <div>
     <p class="text-white"># Info:</p>
-    <p><i class="fa-solid fa-file"></i> <span id="max">...</span> max file size</p>
-    <p><i class="fa-solid fa-database"></i> <span id="total">{{total}}</span> files uploaded</p>
+    <p>
+      <i class="fa-solid fa-file"></i> <span id="max">...</span> max file size
+    </p>
+    <p>
+      <i class="fa-solid fa-database"></i>
+      <span id="total">{{total}}</span> files uploaded
+    </p>
     <p>
       <i class="fa-solid fa-circle-info"></i> By uploading, you agree to the
       <a class="underline" href="/static/tos.html"> TOS </a>
     </p>
   </div>
-  <dialog>
-    <button autofocus>qr code</button>
-  </dialog>
 </div>
 <script>
   const prettyFileSize = (n) => {
@@ -36,9 +46,8 @@
     else return Math.round(n) + " B";
   };
 
-  // from server config
-  let maxSize = {{max}};
   let fileCount = {{total}};
+  let maxSize = {{max}};
 
   document.getElementById("curl").innerText = location.origin;
   document.getElementById("max").innerText = prettyFileSize(maxSize);
