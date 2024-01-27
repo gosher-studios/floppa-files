@@ -39,44 +39,48 @@ function qr(data) {
 }
 
 async function upload(files) {
-  for (let i = 0; i < files.length; i++) {
-    let file = files[i];
-
+  for (let file of files) {
     let log = document.createElement("div");
     log.innerText = `Uploading ${file.name}`;
     document.getElementById("list").appendChild(log);
 
     createToast(`Uploading ${file.name}`);
-    let res = await fetch(file.name, {
+    let res = await fetch(`/${file.name}`, {
       method: "PUT",
       body: file,
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/octet-stream",
       },
     });
     if (res.status == 200) {
       let url = await res.text();
 
-      let el = document.createElement("div");
+      let newLog = document.createElement("div");
+      let show = document.createElement("div");
       let file = document.createElement("div");
+
+      newLog.classList.add("cursor-pointer", "flex", "flex-row", "select-none");
+
       file.onclick = () => {
         navigator.clipboard.writeText(`${location.origin}/${url}`);
         createToast("Copied to clipboard");
       };
-      file.innerText = url.substring(9, 26);
-      el.className = "cursor-pointer flex flex-row select-none ";
-      log.replaceWith(el);
-      el.appendChild(file);
-      let show = document.createElement("div");
+      file.innerText = url;
+      newLog.appendChild(file);
+
       show.innerText = "generate qr";
-      show.className = "px-6";
+      show.classList.add("px-6");
       show.onclick = () => {
         dialogEl.show();
         qr(url);
       };
-      el.appendChild(show);
+      newLog.appendChild(show);
+
+      log.replaceWith(newLog);
     } else {
-      log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
+      let img = document.createElement("img");
+      img.src = `https://http.cat/${res.status}`;
+      log.replaceWith(img);
     }
   }
 }
