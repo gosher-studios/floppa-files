@@ -8,9 +8,6 @@
   <div class="hidden sm:block">
     <p class="text-white"># Upload files with curl:</p>
     <code>$ curl -T (file) <span id="curl"></span></code>
-    <script>
-      document.getElementById("curl").innerText = location.origin;
-    </script>
   </div>
   <input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);" />
   <dialog id="dialog">
@@ -18,8 +15,8 @@
   </dialog>
   <div>
     <p class="text-white"># Info:</p>
-    <p><i class="fa-solid fa-file"></i> {{max}} max file size</p>
-    <p><i class="fa-solid fa-database"></i> {{total}} files uploaded</p>
+    <p><i class="fa-solid fa-file"></i> <span id="max">...</span> max file size</p>
+    <p><i class="fa-solid fa-database"></i> <span id="total">{{total}}</span> files uploaded</p>
     <p>
       <i class="fa-solid fa-circle-info"></i> By uploading, you agree to the
       <a class="underline" href="/static/tos.html"> TOS </a>
@@ -29,5 +26,22 @@
     <button autofocus>qr code</button>
   </dialog>
 </div>
+<script>
+  const prettyFileSize = (n) => {
+    if (n > 0.5 * 1000 ** 5) return Math.round(n / 1000 ** 5) + " PB";
+    else if (n > 0.5 * 1000 ** 4) return Math.round(n / 1000 ** 4) + " TB";
+    else if (n > 0.5 * 1000 ** 3) return Math.round(n / 1000 ** 3) + " GB";
+    else if (n > 0.5 * 1000 ** 2) return Math.round(n / 1000 ** 2) + " MB";
+    else if (n > 0.5 * 1000) return Math.round(n / 1000) + " KB";
+    else return Math.round(n) + " B";
+  };
+
+  // from server config
+  let maxSize = {{max}};
+  let fileCount = {{total}};
+
+  document.getElementById("curl").innerText = location.origin;
+  document.getElementById("max").innerText = prettyFileSize(maxSize);
+</script>
 <script src="/static/index.js"></script>
 {% endblock %}

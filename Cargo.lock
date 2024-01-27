@@ -338,7 +338,6 @@ dependencies = [
  "axum",
  "chrono",
  "futures",
- "humansize",
  "nanoid",
  "qrcode-generator",
  "serde",

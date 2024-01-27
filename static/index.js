@@ -1,4 +1,9 @@
 const dialogEl = document.getElementById("dialog");
+const totalEl = document.getElementById("total");
+
+function updateTotal() {
+  totalEl.innerText = fileCount;
+}
 
 async function dropHandler(e) {
   e.preventDefault();

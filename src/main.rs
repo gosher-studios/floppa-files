@@ -16,7 +16,6 @@ use axum::http::StatusCode;
 use axum::response::{Response, IntoResponse};
 use axum::routing::{get, put};
 use tower_http::services::ServeDir;
-use humansize::{format_size, DECIMAL};
 use askama::Template;
 use nanoid::nanoid;
 use tracing::{info, debug, error};
@@ -121,14 +120,14 @@ async fn upload(
 #[template(path = "home.html")]
 struct Home {
   total: usize,
-  max: String,
+  max: usize,
   ver: &'static str,
 }
 
 async fn home(State(state): State<ArcState>) -> Home {
   Home {
     total: *state.file_count.read().await,
-    max: format_size(state.config.max_size, DECIMAL),
+    max: state.config.max_size,
     ver: env!("CARGO_PKG_VERSION"),
   }
 }
