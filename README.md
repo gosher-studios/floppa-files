@@ -1,12 +1,19 @@
-fwoppy fiwes.
+# floppa-files
 
+silly file host service
 
+## Prerequisites
 
-Features to be added by pandarose:
-cool compression/decompression(lz4_flex server side lz4js client side)
-if download through web browser send file + js to decompress, cool ui showing download, cache
+You need [nodejs](https://nodejs.org/,) along with npm & npx for tailwindcss
 
-fix files.colon3.lol ui ()
+## Building
 
-make other cool features,
-theme make it vixen if that exists
+```sh
+cargo build --bin server # add --release for a release build
+```
+
+## TODO
+
+- [ ] compression
+- [ ] cool ui showing download
+- [ ] make other cool features

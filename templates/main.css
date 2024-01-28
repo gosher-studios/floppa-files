@@ -2,5 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
+#qr {
+  image-rendering: pixelated;
+}

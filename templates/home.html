@@ -1,109 +1,57 @@
 {% extends "base.html" %} {% block content %}
-<label for="file" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" class="block p-4 text-4xl bg-fg rounded-md text-accent cursor-pointer text-center"><i class="fa-solid fa-file-arrow-up"></i> Select File(s)</label>
-<div class="bg-fg p-4 rounded-md text-accent">
+<label
+  for="file"
+  ondrop="dropHandler(event);"
+  ondragover="dragOverHandler(event);"
+  class="block p-4 text-4xl bg-fg rounded-md cursor-pointer text-center"
+>
+  <i class="fa-solid fa-file-arrow-up"></i> Select Files
+</label>
+<div class="bg-fg p-4 rounded-md">
+  <p class="text-white hidden" id="list-title"># Uploaded files:</p>
+  <div id="list" class="text-base"></div>
   <div class="hidden sm:block">
     <p class="text-white"># Upload files with curl:</p>
-    <p>$ curl -T (file) {{url}}</p>
+    <code>$ curl -T (file) <span id="curl"></span></code>
   </div>
-  <p class="text-white"># Uploaded files:</p>
-  <div id="list" class="text-base"></div>
-<input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);"/>
-<dialog id="dialog"> 
- <div> </div>
-</dialog>
-<div>
+  <input
+    id="file"
+    type="file"
+    class="hidden"
+    multiple
+    onchange="uploadHandler(event);"
+  />
+  <div>
     <p class="text-white"># Info:</p>
-    <p><i class="fa-solid fa-file"></i> {{max}} max file size</p>
-    <p><i class="fa-solid fa-database"></i> {{total}} files uploaded</p>
-    <p><i class="fa-solid fa-circle-info"></i> By uploading, you agree to the <a class="underline" href="{{url}}/static/tos.html"> TOS </a> </p>
-
+    <p>
+      <i class="fa-solid fa-file"></i> <span id="max">...</span> max file size
+    </p>
+    <p>
+      <i class="fa-solid fa-database"></i>
+      <span id="total">{{total}}</span> files uploaded
+    </p>
+    <p>
+      <i class="fa-solid fa-circle-info"></i> By uploading, you agree to the
+      <a class="underline" href="/static/tos.html"> TOS </a>
+    </p>
+  </div>
 </div>
-<dialog>
-  <button autofocus>qr code </button> </dialog>
 <script>
-  const dialogEl = document.getElementById("dialog");
-
-  async function dropHandler(e) {
-    e.preventDefault();
-    let arr = [...e.dataTransfer.items];
-    upload(arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()));
-    };
-
-  function dragOverHandler(e) {
-    e.preventDefault()
-  }
-
-  function uploadHandler(e) {
-    upload(Array.from(e.target.files));
-  }
-function qr(data) {
-    fetch(String("{{url}}/qr/" + data)).then((response) => response.text())
-      .then((svg) => {
-        const parser = new DOMParser();
-        const qrdoc = parser.parseFromString(svg, 'image/svg+xml');
-        const qr = qrdoc.documentElement;
-        qr.onclick = () => dialogEl.close();
-        dialogEl.children[0].replaceWith(qr)
-      }).catch((err) => {
-        console.error('fuck you', err);
-        return "static/download.svg";
-      });
+  const prettyFileSize = (n) => {
+    if (n > 0.5 * 1000 ** 5) return Math.round(n / 1000 ** 5) + " PB";
+    else if (n > 0.5 * 1000 ** 4) return Math.round(n / 1000 ** 4) + " TB";
+    else if (n > 0.5 * 1000 ** 3) return Math.round(n / 1000 ** 3) + " GB";
+    else if (n > 0.5 * 1000 ** 2) return Math.round(n / 1000 ** 2) + " MB";
+    else if (n > 0.5 * 1000) return Math.round(n / 1000) + " KB";
+    else return Math.round(n) + " B";
   };
-  async function upload(files) {
-    for (let i = 0; i < files.length; i++) {
-      let file = files[i];
 
-      let log = document.createElement("div");
-      log.innerText = `Uploading ${file.name}`;
-      document.getElementById("list").appendChild(log);
+  let fileCount = {{total}};
+  let maxSize = {{max}};
 
-      createToast(`Uploading ${file.name}`);
-      let res = await fetch(file.name, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': 'text/plain'
-        }
-      });
-      if (res.status == 200) {        
-        let url = await res.text();
-
-        let el = document.createElement("div")
-        let file = document.createElement("div"); 
-        file.onclick = () => { 
-           navigator.clipboard.writeText(`{{url}}/${url}`);
-           createToast("Copied to clipboard")
-        }
-        file.innerText = url.substring( 9 , 26) 
-        el.className = "cursor-pointer flex flex-row select-none "
-        log.replaceWith(el)
-        el.appendChild(file);
-        let show = document.createElement("div")
-         show.innerText = "generate qr"
-        show.className = "px-6"
-         show.onclick = () => {
-            dialogEl.show();
-            qr(url)
-         }
-         el.appendChild(show)
-      } else {
-        log.innerHTML = `<img src="https://http.cat/${res.status}"/>`;
-      }
-    }
-  }
-
-  const container = document.getElementById("toast-container")
-
-  function createToast(message) {
-      const toast = document.createElement('div');
-      toast.innerText = message; 
-      toast.className = "text-white overflow-none bg-bg border-2 border-fg m-2 p-1";
-      container.appendChild(toast);
-      setTimeout(() => {
-         toast.remove();
-      } , 2500)
-  }
+  document.getElementById("curl").innerText = location.origin;
+  document.getElementById("max").innerText = prettyFileSize(maxSize);
 </script>
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/index.js"></script>
 {% endblock %}
-
-

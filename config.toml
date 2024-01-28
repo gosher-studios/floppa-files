@@ -1,4 +1,0 @@
-max_size = 10000000000000
-url = "http://localhost:3000"
-file_dir = "files"
-listen = "0.0.0.0:3000"
