@@ -10,29 +10,21 @@
 <div class="bg-fg p-4 rounded-md">
   <p class="text-white hidden" id="list-title"># Uploaded files:</p>
   <div id="list" class="text-base"></div>
-  <div class="hidden sm:block">
+  <div class="hidden md:block">
     <p class="text-white"># Upload files with curl:</p>
     <code>$ curl -T (file) <span id="curl"></span></code>
   </div>
-  <input
-    id="file"
-    type="file"
-    class="hidden"
-    multiple
-    onchange="uploadHandler(event);"
-  />
+  <input id="file" type="file" class="hidden" multiple onchange="uploadHandler(event);" />
   <div>
     <p class="text-white"># Info:</p>
-    <p>
-      <i class="fa-solid fa-file"></i> <span id="max">...</span> max file size
-    </p>
+    <p><i class="fa-solid fa-file"></i> <span id="max">...</span> max file size</p>
     <p>
       <i class="fa-solid fa-database"></i>
       <span id="total">{{total}}</span> files uploaded
     </p>
     <p>
       <i class="fa-solid fa-circle-info"></i> By uploading, you agree to the
-      <a class="underline" href="/static/tos.html"> TOS </a>
+      <a class="underline" href="/tos"> TOS</a>
     </p>
   </div>
 </div>

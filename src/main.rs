@@ -62,6 +62,7 @@ async fn main() -> Result {
 
   let app = Router::new()
     .route("/", get(home))
+    .route("/tos", get(tos))
     .route(
       "/:id",
       put(upload).get_service(ServeDir::new(&config.file_dir)),
@@ -128,6 +129,18 @@ async fn home(State(state): State<ArcState>) -> Home {
   Home {
     total: *state.file_count.read().await,
     max: state.config.max_size,
+    ver: env!("CARGO_PKG_VERSION"),
+  }
+}
+
+#[derive(Template)]
+#[template(path = "tos.html")]
+struct Tos {
+  ver: &'static str,
+}
+
+async fn tos() -> Tos {
+  Tos {
     ver: env!("CARGO_PKG_VERSION"),
   }
 }

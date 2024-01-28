@@ -1,9 +1,7 @@
 const dropHandler = async (e) => {
   e.preventDefault();
   let arr = [...e.dataTransfer.items];
-  upload(
-    arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()),
-  );
+  upload(arr.filter((item) => item.kind == "file").map((item) => item.getAsFile()));
 };
 
 const dragOverHandler = (e) => {

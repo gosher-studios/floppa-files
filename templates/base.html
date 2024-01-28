@@ -17,12 +17,9 @@
       href="https://fonts.googleapis.com/css2?family=Roboto+Mono&amp;display=swap"
       rel="stylesheet"
     />
-    <script
-      src="https://kit.fontawesome.com/ea5efe8481.js"
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://kit.fontawesome.com/ea5efe8481.js" crossorigin="anonymous"></script>
   </head>
-  <body class="bg-bg font-mono flex justify-center sm:text-lg text-accent">
+  <body class="bg-bg font-mono flex justify-center md:text-lg text-accent">
     <div
       class="hidden inset-0 flex flex-col items-center justify-center bg-bg/75 z-50"
       id="qr-container"
@@ -31,36 +28,23 @@
       <div id="qr" class="bg-white p-2 rounded-md"></div>
       <p class="text-md">Click anywhere to exit.</p>
     </div>
-    <div
-      id="toast-container"
-      class="flex flex-col items-end fixed top-2 right-2 space-y-1"
-    ></div>
+    <div id="toast-container" class="flex flex-col items-end fixed top-2 right-2 space-y-1"></div>
     <div class="p-6 w-full lg:w-[1024px] h-full space-y-4">
       <h1 class="text-5xl md:text-7xl font-display text-white text-center">
-        Floppa Files
+        <a href="/">Floppa Files</a>
       </h1>
       {% block content %}{% endblock %}
-      <img
-        class="fixed bottom-0 right-0 w-[160px] md:w-[320px]"
-        src=""
-        alt=""
-        id="floppa"
-      />
+      <img class="fixed bottom-0 right-0 w-[160px] md:w-[320px]" src="" alt="" id="floppa" />
       <div class="fixed bottom-2 left-2 text-sm md:text-base">
         v{{ver}}
         <br />
-        <a
-          href="https://github.com/gosher-studios/floppa-files"
-          target="_blank"
-          class="underline"
-        >
+        <a href="https://github.com/gosher-studios/floppa-files" target="_blank" class="underline">
           <i class="fa-brands fa-github"></i>View on GitHub
         </a>
       </div>
     </div>
     <script>
-      document.getElementById("floppa").src =
-        `static/${Math.floor(Math.random() * 4)}.png`;
+      document.getElementById("floppa").src = `static/${Math.floor(Math.random() * 4)}.png`;
     </script>
   </body>
 </html>
