@@ -4,7 +4,7 @@ mod log;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use axum_client_ip::SecureClientIp;
+use axum_client_ip::InsecureClientIp;
 use tokio::{io, fs};
 use tokio::sync::RwLock;
 use tokio::net::TcpListener;
@@ -12,7 +12,7 @@ use tokio::fs::File;
 use futures::TryStreamExt;
 use axum::Router;
 use axum::body::Body;
-use axum::extract::{ConnectInfo, DefaultBodyLimit, Path, State};
+use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::StatusCode;
 use axum::response::{Response, IntoResponse};
 use axum::routing::{get, put};
@@ -86,7 +86,7 @@ async fn main() -> Result {
 async fn upload(
   Path(id): Path<String>,
   State(state): State<ArcState>,
-  SecureClientIp(ip): SecureClientIp,
+  InsecureClientIp(ip): InsecureClientIp,
   body: Body,
 ) -> Result<Response, AppError> {
   let file_name = id.replace(
