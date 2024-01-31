@@ -4,6 +4,7 @@ mod log;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use axum_client_ip::SecureClientIp;
 use tokio::{io, fs};
 use tokio::sync::RwLock;
 use tokio::net::TcpListener;
@@ -85,7 +86,7 @@ async fn main() -> Result {
 async fn upload(
   Path(id): Path<String>,
   State(state): State<ArcState>,
-  ConnectInfo(addr): ConnectInfo<SocketAddr>,
+  SecureClientIp(ip): SecureClientIp,
   body: Body,
 ) -> Result<Response, AppError> {
   let file_name = id.replace(
@@ -110,7 +111,7 @@ async fn upload(
   } else {
     state
       .logger
-      .log(format!("{} uploaded {}", &addr, &file_name))?;
+      .log(format!("{} uploaded {}", &ip, &file_name))?;
     *state.file_count.write().await += 1;
 
     Ok(file_name.into_response())
