@@ -9,11 +9,10 @@ You need [nodejs](https://nodejs.org/,) along with npm & npx for tailwindcss
 ## Building
 
 ```sh
-cargo build --bin server # add --release for a release build
+cargo build --release # remove --release for a non release build
 ```
 
 ## TODO
 
 - [ ] compression
-- [ ] cool ui showing download
 - [ ] make other cool features
