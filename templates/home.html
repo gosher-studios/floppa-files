@@ -29,20 +29,20 @@
   </div>
 </div>
 <script>
-  const prettyFileSize = (n) => {
-    if (n > 0.5 * 1000 ** 5) return Math.round(n / 1000 ** 5) + " PB";
-    else if (n > 0.5 * 1000 ** 4) return Math.round(n / 1000 ** 4) + " TB";
-    else if (n > 0.5 * 1000 ** 3) return Math.round(n / 1000 ** 3) + " GB";
-    else if (n > 0.5 * 1000 ** 2) return Math.round(n / 1000 ** 2) + " MB";
-    else if (n > 0.5 * 1000) return Math.round(n / 1000) + " KB";
-    else return Math.round(n) + " B";
+  const prettyFileSize = (x, n) => {
+    if (x > 0.5 * 1000 ** 5) return (x / 1000 ** 5).toFixed(n) + " PB";
+    else if (x > 0.5 * 1000 ** 4) return (x / 1000 ** 4).toFixed(n) + " TB";
+    else if (x > 0.5 * 1000 ** 3) return (x / 1000 ** 3).toFixed(n) + " GB";
+    else if (x > 0.5 * 1000 ** 2) return (x / 1000 ** 2).toFixed(n) + " MB";
+    else if (x > 0.5 * 1000) return (x / 1000).toFixed(n) + " KB";
+    else return n.toFixed(2) + " B";
   };
 
   let fileCount = {{total}};
   let maxSize = {{max}};
 
   document.getElementById("curl").innerText = location.origin;
-  document.getElementById("max").innerText = prettyFileSize(maxSize);
+  document.getElementById("max").innerText = prettyFileSize(maxSize, 0);
 </script>
 <script src="/static/qrcode.min.js"></script>
 <script src="/static/index.js"></script>
