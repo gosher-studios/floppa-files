@@ -1,3 +1,6 @@
 [submodule "qrcodejs"]
 	path = qrcodejs
 	url = https://github.com/davidshimjs/qrcodejs
+[submodule "floppaplate"]
+	path = floppaplate
+	url = https://github.com/gosher-studios/floppaplate
