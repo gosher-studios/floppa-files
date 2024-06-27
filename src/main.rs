@@ -1,10 +1,15 @@
+#![feature(map_try_insert)]
 mod config;
 mod log;
 
+use std::collections::HashMap;
 use std::env;
+use std::fmt::Debug;
 use std::net::SocketAddr;
+use std::path::Path as sPath;
 use std::sync::Arc;
 use axum_client_ip::InsecureClientIp;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::{io, fs};
 use tokio::sync::RwLock;
 use tokio::net::TcpListener;
@@ -23,6 +28,7 @@ use tracing::{info, debug, error};
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use blake3::{Hash, Hasher};
 use config::Config;
 use log::Logger;
 
@@ -32,6 +38,8 @@ pub type Result<T = (), E = Box<dyn std::error::Error>> = std::result::Result<T,
 struct AppState {
   file_count: RwLock<usize>,
   config: Config,
+  paths: RwLock<HashMap<String, String>>,
+  hashes: RwLock<HashMap<Hash, String>>,
   logger: Logger,
 }
 
@@ -59,6 +67,8 @@ async fn main() -> Result {
     file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
     config: config.clone(),
     logger,
+    paths: RwLock::new(HashMap::new()),
+    hashes: RwLock::new(HashMap::new()),
   });
 
   let app = Router::new()
@@ -66,7 +76,7 @@ async fn main() -> Result {
     .route("/tos", get(tos))
     .route(
       "/:id",
-      put(upload).get_service(ServeDir::new(&config.file_dir)),
+      put(upload_hash).get_service(ServeDir::new(&config.file_dir)),
     )
     .layer(DefaultBodyLimit::max(config.max_size))
     .nest_service("/static", ServeDir::new("static"))
@@ -83,7 +93,66 @@ async fn main() -> Result {
   Ok(())
 }
 
-async fn upload(
+async fn upload_hash(
+  Path(id): Path<String>,
+  State(state): State<ArcState>,
+  InsecureClientIp(ip): InsecureClientIp,
+  body: Body,
+) -> Result<Response, AppError> {
+  let file_name = id.replace(
+    [
+      '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
+    ],
+    "-",
+  );
+  let mut file_name = format!("{}.{}", nanoid!(8), file_name);
+  let path = state.config.file_dir.join(&file_name);
+  let mut file = File::create(&path).await.unwrap();
+  let mut hasher = Hasher::new();
+  let mut buf: [u8; 16384] = [0; 16384];
+  let mut reader = tokio_util::io::StreamReader::new(
+    body
+      .into_data_stream()
+      .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
+  );
+  loop {
+    if match reader.read(&mut buf).await {
+      Ok(e) => e,
+      Err(error) => {
+        debug!("removing failed upload {}", &file_name);
+        fs::remove_file(&path).await?;
+        return Err(error.into());
+      }
+    } == 0
+    {
+      break;
+    }
+    hasher.update(&buf);
+    file.write_all(&buf).await?;
+  }
+  let hash = hasher.finalize();
+  dbg!(hash);
+  let mut hashes = state.hashes.write().await;
+  file_name = match hashes.try_insert(hash, file_name) {
+    Ok(f) => {
+      state.logger.log(format!("{} uploaded {}", &ip, &f))?;
+      *state.file_count.write().await += 1;
+      f.to_string()
+    }
+    Err(e) => {
+      state
+        .logger
+        .log(format!("{} uploaded duplicate of {}", &ip, &e.value))?;
+      fs::remove_file(&path).await?;
+      e.value
+    }
+  };
+
+  Ok(file_name.into_response())
+}
+
+/// one with thread spawns
+async fn upload_meowed(
   Path(id): Path<String>,
   State(state): State<ArcState>,
   InsecureClientIp(ip): InsecureClientIp,
@@ -98,6 +167,7 @@ async fn upload(
   let file_name = format!("{}.{}", nanoid!(8), file_name);
   let path = state.config.file_dir.join(&file_name);
   let mut file = File::create(&path).await.unwrap();
+  let mut hasher = Hasher::new();
 
   let mut reader = tokio_util::io::StreamReader::new(
     body
