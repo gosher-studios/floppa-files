@@ -2,5 +2,4 @@ target/
 files/
 logfile
 static/main.css
-static/qrcode.min.js
 config.toml
