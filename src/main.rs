@@ -1,18 +1,18 @@
 #![feature(map_try_insert)]
 mod config;
-mod log;
 
-use std::collections::HashMap;
 use std::env;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::path::PathBuf;
 use axum_client_ip::InsecureClientIp;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::{fs, io};
-use tokio::sync::{mpsc, RwLock};
 use tokio::net::TcpListener;
-use tokio::fs::{read_dir, remove_file, symlink, File};
+use tokio::fs::File;
+use tokio::sync::{RwLock, mpsc};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures::TryStreamExt;
 use axum::Router;
 use axum::body::Body;
@@ -20,69 +20,50 @@ use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::StatusCode;
 use axum::response::{Response, IntoResponse};
 use axum::routing::{get, put};
-use tokio_stream::wrappers::ReadDirStream;
-use tokio_stream::StreamExt;
+use tokio_util::io::StreamReader;
 use tower_http::services::ServeDir;
 use askama::Template;
 use nanoid::nanoid;
-use tracing::{info, debug, error};
-use tracing_subscriber::filter::EnvFilter;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing::{info, warn, error};
+use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::prelude::*;
 use blake3::{Hash, Hasher};
-use config::Config;
-use log::Logger;
+use crate::config::Config;
 
-pub type Result<T = (), E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
+type Result<T = (), E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
+type ArcState = Arc<AppState>;
+
+const REPLACE_CHARS: [char; 13] = [
+  '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
+];
 
 #[derive(Debug)]
 struct AppState {
   file_count: RwLock<usize>,
   config: Config,
-  hashes: RwLock<HashMap<Hash, String>>,
-  logger: Logger,
-  tx: UnboundedSender<String>,
+  path_tx: UnboundedSender<PathBuf>,
 }
-
-type ArcState = Arc<AppState>;
 
 #[tokio::main]
 async fn main() -> Result {
-  tracing_subscriber::registry()
-    .with(
-      EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))
-        .unwrap(),
-    )
-    .with(tracing_subscriber::fmt::layer())
-    .init();
-  let (tx, rx) = mpsc::unbounded_channel();
   let config = Config::load(env::var("FLOPPA_CONFIG").unwrap_or("config.toml".into())).await?;
-  let logger = Logger::new(&config.log_file);
+  tracing_subscriber::registry()
+    .with(tracing_subscriber::fmt::layer().with_filter(LevelFilter::INFO)) // todo file
+    .init();
 
   if fs::create_dir(&config.file_dir).await.is_ok() {
     info!("created files directory {:?}", &config.file_dir)
   };
 
+  let (tx, rx) = mpsc::unbounded_channel();
   let state = Arc::new(AppState {
     file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
     config: config.clone(),
-    logger,
-    hashes: RwLock::new(HashMap::new()),
-    tx,
+    path_tx: tx,
   });
-  let cloned_state = state.clone();
-  let _manager = tokio::spawn(async move { manager(cloned_state, rx).await });
-  let mut stream = ReadDirStream::new(read_dir(&config.file_dir).await?);
-  info!("meowing the files directory");
-  while let Some(file) = stream.next().await {
-    let f = file?;
-    if !&f.metadata().await?.is_symlink() {
-      check_hash(state.clone(), f.file_name().into_string().unwrap())
-        .await
-        .unwrap();
-    }
-  }
+
+  tokio::spawn(deduper(config.clone(), rx));
+
   let app = Router::new()
     .route("/", get(home))
     .route("/tos", get(tos))
@@ -101,14 +82,6 @@ async fn main() -> Result {
     app.into_make_service_with_connect_info::<SocketAddr>(),
   )
   .await?;
-
-  Ok(())
-}
-
-async fn manager(state: ArcState, mut rx: UnboundedReceiver<String>) -> Result<(), AppError> {
-  while let Some(name) = rx.recv().await {
-    check_hash(state.clone(), name).await?;
-  }
   Ok(())
 }
 
@@ -118,54 +91,52 @@ async fn upload(
   InsecureClientIp(ip): InsecureClientIp,
   body: Body,
 ) -> Result<Response, AppError> {
-  let file_name = id.replace(
-    [
-      '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
-    ],
-    "-",
-  );
-  let file_name = format!("{}.{}", nanoid!(8), file_name);
+  let file_name = format!("{}.{}", nanoid!(8), id.replace(REPLACE_CHARS, "-"));
   let path = state.config.file_dir.join(&file_name);
-  let mut file = File::create(&path).await.unwrap();
-  let mut reader = tokio_util::io::StreamReader::new(
-    body
-      .into_data_stream()
-      .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
-  );
-  if let Err(error) = io::copy(&mut reader, &mut file).await {
-    debug!("removing failed upload {}", &file_name);
-    remove_file(&path).await?;
-    Err(error.into())
-  } else {
-    state
-      .logger
-      .log(format!("{} uploaded {}", &ip, &file_name))?;
-    *state.file_count.write().await += 1;
-    state.tx.clone().send(file_name.clone()).unwrap();
-    Ok(file_name.into_response())
+  let mut file = File::create(&path).await?;
+
+  let mut reader = StreamReader::new(body.into_data_stream().map_err(|e| io::Error::other(e)));
+  match io::copy(&mut reader, &mut file).await {
+    Ok(_) => {
+      info!("{} uploaded {}", ip, file_name);
+      *state.file_count.write().await += 1;
+      state.path_tx.send(path).unwrap();
+      Ok(file_name.into_response())
+    }
+    Err(err) => {
+      warn!("error uploading {} ({})", file_name, err);
+      fs::remove_file(&path).await?;
+      Err(err.into())
+    }
   }
 }
 
-async fn check_hash(state: ArcState, file_name: String) -> Result<(), AppError> {
+async fn deduper(config: Config, mut rx: UnboundedReceiver<PathBuf>) -> Result<(), AppError> {
+  let mut hashes = HashMap::new();
+  for entry in std::fs::read_dir(config.file_dir)? {
+    let entry = entry?;
+    if !entry.metadata()?.is_symlink() {
+      check_dupes(&mut hashes, entry.path()).await?;
+    }
+  }
+  while let Some(path) = rx.recv().await {
+    check_dupes(&mut hashes, path).await?;
+  }
+  Ok(())
+}
+
+async fn check_dupes(hashes: &mut HashMap<Hash, String>, path: PathBuf) -> Result<(), AppError> {
   let mut hasher = Hasher::new();
-  let path = state.config.file_dir.join(&file_name);
   hasher.update_mmap(&path)?;
   let hash = hasher.finalize();
-  let mut hashes = state.hashes.write().await;
-  match hashes.try_insert(hash, file_name) {
-    Ok(_) => {}
-    Err(e) => {
-      let vpath = state.config.file_dir.join(&e.entry.get());
-      state.logger.log(format!(
-        "file {:?} deduplicated, symlinked to {:?}",
-        &path.file_name().unwrap(),
-        &vpath.file_name().unwrap()
-      ))?;
-      remove_file(&path).await?;
-      symlink(vpath, path).await?;
-    }
-  };
 
+  let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
+  if let Err(e) = hashes.try_insert(hash, file_name.clone()) {
+    let original_path = e.entry.get();
+    info!("deduplicating {:?}, copy of {:?}", file_name, original_path);
+    fs::remove_file(&path).await?;
+    fs::symlink(original_path, &path).await?;
+  }
   Ok(())
 }
 
