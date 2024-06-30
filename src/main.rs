@@ -6,12 +6,11 @@ use std::collections::HashMap;
 use std::env;
 use std::fmt::Debug;
 use std::net::SocketAddr;
-use std::path::Path as sPath;
 use std::sync::Arc;
 use axum_client_ip::InsecureClientIp;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::{io, fs};
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 use tokio::net::TcpListener;
 use tokio::fs::File;
 use futures::TryStreamExt;
@@ -38,9 +37,9 @@ pub type Result<T = (), E = Box<dyn std::error::Error>> = std::result::Result<T,
 struct AppState {
   file_count: RwLock<usize>,
   config: Config,
-  paths: RwLock<HashMap<String, String>>,
   hashes: RwLock<HashMap<Hash, String>>,
   logger: Logger,
+  tx: Sender<String>,
 }
 
 type ArcState = Arc<AppState>;
@@ -55,7 +54,7 @@ async fn main() -> Result {
     )
     .with(tracing_subscriber::fmt::layer())
     .init();
-
+  let (tx, rx) = mpsc::channel(64);
   let config = Config::load(env::var("FLOPPA_CONFIG").unwrap_or("config.toml".into())).await?;
   let logger = Logger::new(&config.log_file);
 
@@ -67,16 +66,17 @@ async fn main() -> Result {
     file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
     config: config.clone(),
     logger,
-    paths: RwLock::new(HashMap::new()),
     hashes: RwLock::new(HashMap::new()),
+    tx,
   });
-
+  let clonedstate = state.clone();
+  let _manager = tokio::spawn(async move { manager(clonedstate, rx).await });
   let app = Router::new()
     .route("/", get(home))
     .route("/tos", get(tos))
     .route(
       "/:id",
-      put(upload_hash).get_service(ServeDir::new(&config.file_dir)),
+      put(upload).get_service(ServeDir::new(&config.file_dir)),
     )
     .layer(DefaultBodyLimit::max(config.max_size))
     .nest_service("/static", ServeDir::new("static"))
@@ -93,66 +93,15 @@ async fn main() -> Result {
   Ok(())
 }
 
-async fn upload_hash(
-  Path(id): Path<String>,
-  State(state): State<ArcState>,
-  InsecureClientIp(ip): InsecureClientIp,
-  body: Body,
-) -> Result<Response, AppError> {
-  let file_name = id.replace(
-    [
-      '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
-    ],
-    "-",
-  );
-  let mut file_name = format!("{}.{}", nanoid!(8), file_name);
-  let path = state.config.file_dir.join(&file_name);
-  let mut file = File::create(&path).await.unwrap();
-  let mut hasher = Hasher::new();
-  let mut buf: [u8; 16384] = [0; 16384];
-  let mut reader = tokio_util::io::StreamReader::new(
-    body
-      .into_data_stream()
-      .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
-  );
-  loop {
-    if match reader.read(&mut buf).await {
-      Ok(e) => e,
-      Err(error) => {
-        debug!("removing failed upload {}", &file_name);
-        fs::remove_file(&path).await?;
-        return Err(error.into());
-      }
-    } == 0
-    {
-      break;
-    }
-    hasher.update(&buf);
-    file.write_all(&buf).await?;
+async fn manager(state: ArcState, mut rx: Receiver<String>) -> Result<bool, AppError> {
+  while let Some(name) = rx.recv().await {
+    check_hash(state.clone(), name).await?;
   }
-  let hash = hasher.finalize();
-  dbg!(hash);
-  let mut hashes = state.hashes.write().await;
-  file_name = match hashes.try_insert(hash, file_name) {
-    Ok(f) => {
-      state.logger.log(format!("{} uploaded {}", &ip, &f))?;
-      *state.file_count.write().await += 1;
-      f.to_string()
-    }
-    Err(e) => {
-      state
-        .logger
-        .log(format!("{} uploaded duplicate of {}", &ip, &e.value))?;
-      fs::remove_file(&path).await?;
-      e.value
-    }
-  };
-
-  Ok(file_name.into_response())
+  Ok(true)
 }
 
 /// one with thread spawns
-async fn upload_meowed(
+async fn upload(
   Path(id): Path<String>,
   State(state): State<ArcState>,
   InsecureClientIp(ip): InsecureClientIp,
@@ -167,8 +116,6 @@ async fn upload_meowed(
   let file_name = format!("{}.{}", nanoid!(8), file_name);
   let path = state.config.file_dir.join(&file_name);
   let mut file = File::create(&path).await.unwrap();
-  let mut hasher = Hasher::new();
-
   let mut reader = tokio_util::io::StreamReader::new(
     body
       .into_data_stream()
@@ -183,9 +130,33 @@ async fn upload_meowed(
       .logger
       .log(format!("{} uploaded {}", &ip, &file_name))?;
     *state.file_count.write().await += 1;
-
+    // i'm so mean todo fix unwrap
+    state.tx.clone().send(file_name.clone()).await.unwrap();
     Ok(file_name.into_response())
   }
+}
+
+async fn check_hash(state: ArcState, file_name: String) -> Result<bool, AppError> {
+  let mut hasher = Hasher::new();
+  let path = state.config.file_dir.join(&file_name);
+  hasher.update_mmap(&path)?;
+  let hash = hasher.finalize();
+  let mut hashes = state.hashes.write().await;
+  match hashes.try_insert(hash, file_name) {
+    Ok(_) => {}
+    Err(e) => {
+      let vpath = state.config.file_dir.join(&e.entry.get());
+      state.logger.log(format!(
+        "{:?} duplicate of {:?}, symlinked",
+        &path.file_name().unwrap(),
+        &vpath.file_name().unwrap()
+      ))?;
+      tokio::fs::remove_file(&path).await?;
+      tokio::fs::symlink(vpath, path).await?;
+    }
+  };
+
+  Ok(true)
 }
 
 #[derive(Template)]
