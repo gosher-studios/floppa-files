@@ -8,11 +8,11 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use axum_client_ip::InsecureClientIp;
-use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::{io, fs};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::{fs, io};
 use tokio::sync::{mpsc, RwLock};
 use tokio::net::TcpListener;
-use tokio::fs::File;
+use tokio::fs::{read_dir, remove_file, symlink, File};
 use futures::TryStreamExt;
 use axum::Router;
 use axum::body::Body;
@@ -20,6 +20,8 @@ use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::StatusCode;
 use axum::response::{Response, IntoResponse};
 use axum::routing::{get, put};
+use tokio_stream::wrappers::ReadDirStream;
+use tokio_stream::StreamExt;
 use tower_http::services::ServeDir;
 use askama::Template;
 use nanoid::nanoid;
@@ -39,7 +41,7 @@ struct AppState {
   config: Config,
   hashes: RwLock<HashMap<Hash, String>>,
   logger: Logger,
-  tx: Sender<String>,
+  tx: UnboundedSender<String>,
 }
 
 type ArcState = Arc<AppState>;
@@ -54,7 +56,7 @@ async fn main() -> Result {
     )
     .with(tracing_subscriber::fmt::layer())
     .init();
-  let (tx, rx) = mpsc::channel(64);
+  let (tx, rx) = mpsc::unbounded_channel();
   let config = Config::load(env::var("FLOPPA_CONFIG").unwrap_or("config.toml".into())).await?;
   let logger = Logger::new(&config.log_file);
 
@@ -69,8 +71,18 @@ async fn main() -> Result {
     hashes: RwLock::new(HashMap::new()),
     tx,
   });
-  let clonedstate = state.clone();
-  let _manager = tokio::spawn(async move { manager(clonedstate, rx).await });
+  let cloned_state = state.clone();
+  let _manager = tokio::spawn(async move { manager(cloned_state, rx).await });
+  let mut stream = ReadDirStream::new(read_dir(&config.file_dir).await?);
+  info!("meowing the files directory");
+  while let Some(file) = stream.next().await {
+    let f = file?;
+    if !&f.metadata().await?.is_symlink() {
+      check_hash(state.clone(), f.file_name().into_string().unwrap())
+        .await
+        .unwrap();
+    }
+  }
   let app = Router::new()
     .route("/", get(home))
     .route("/tos", get(tos))
@@ -93,14 +105,13 @@ async fn main() -> Result {
   Ok(())
 }
 
-async fn manager(state: ArcState, mut rx: Receiver<String>) -> Result<bool, AppError> {
+async fn manager(state: ArcState, mut rx: UnboundedReceiver<String>) -> Result<(), AppError> {
   while let Some(name) = rx.recv().await {
     check_hash(state.clone(), name).await?;
   }
-  Ok(true)
+  Ok(())
 }
 
-/// one with thread spawns
 async fn upload(
   Path(id): Path<String>,
   State(state): State<ArcState>,
@@ -123,20 +134,19 @@ async fn upload(
   );
   if let Err(error) = io::copy(&mut reader, &mut file).await {
     debug!("removing failed upload {}", &file_name);
-    fs::remove_file(&path).await?;
+    remove_file(&path).await?;
     Err(error.into())
   } else {
     state
       .logger
       .log(format!("{} uploaded {}", &ip, &file_name))?;
     *state.file_count.write().await += 1;
-    // i'm so mean todo fix unwrap
-    state.tx.clone().send(file_name.clone()).await.unwrap();
+    state.tx.clone().send(file_name.clone()).unwrap();
     Ok(file_name.into_response())
   }
 }
 
-async fn check_hash(state: ArcState, file_name: String) -> Result<bool, AppError> {
+async fn check_hash(state: ArcState, file_name: String) -> Result<(), AppError> {
   let mut hasher = Hasher::new();
   let path = state.config.file_dir.join(&file_name);
   hasher.update_mmap(&path)?;
@@ -147,16 +157,16 @@ async fn check_hash(state: ArcState, file_name: String) -> Result<bool, AppError
     Err(e) => {
       let vpath = state.config.file_dir.join(&e.entry.get());
       state.logger.log(format!(
-        "{:?} duplicate of {:?}, symlinked",
+        "file {:?} deduplicated, symlinked to {:?}",
         &path.file_name().unwrap(),
         &vpath.file_name().unwrap()
       ))?;
-      tokio::fs::remove_file(&path).await?;
-      tokio::fs::symlink(vpath, path).await?;
+      remove_file(&path).await?;
+      symlink(vpath, path).await?;
     }
   };
 
-  Ok(true)
+  Ok(())
 }
 
 #[derive(Template)]
@@ -187,6 +197,7 @@ async fn tos() -> Tos {
   }
 }
 
+#[derive(Debug)]
 struct AppError(std::io::Error);
 
 impl IntoResponse for AppError {
