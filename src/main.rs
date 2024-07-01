@@ -1,5 +1,6 @@
 #![feature(map_try_insert)]
 mod config;
+mod web;
 
 use std::env;
 use std::collections::HashMap;
@@ -7,6 +8,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::path::PathBuf;
+use std::fs::OpenOptions;
 use axum_client_ip::InsecureClientIp;
 use tokio::{fs, io};
 use tokio::net::TcpListener;
@@ -22,11 +24,10 @@ use axum::response::{Response, IntoResponse};
 use axum::routing::{get, put};
 use tokio_util::io::StreamReader;
 use tower_http::services::ServeDir;
-use askama::Template;
 use nanoid::nanoid;
 use tracing::{info, warn, error};
-use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::prelude::*;
+use tracing_subscriber::filter::LevelFilter;
 use blake3::{Hash, Hasher};
 use crate::config::Config;
 
@@ -48,7 +49,20 @@ struct AppState {
 async fn main() -> Result {
   let config = Config::load(env::var("FLOPPA_CONFIG").unwrap_or("config.toml".into())).await?;
   tracing_subscriber::registry()
-    .with(tracing_subscriber::fmt::layer().with_filter(LevelFilter::INFO)) // todo file
+    .with(LevelFilter::INFO)
+    .with(
+      tracing_subscriber::fmt::layer()
+        .with_writer(
+          OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&config.log_file)?,
+        )
+        .with_ansi(false)
+        .with_level(false)
+        .with_target(false),
+    )
+    .with(tracing_subscriber::fmt::layer())
     .init();
 
   if fs::create_dir(&config.file_dir).await.is_ok() {
@@ -65,8 +79,8 @@ async fn main() -> Result {
   tokio::spawn(deduper(config.clone(), rx));
 
   let app = Router::new()
-    .route("/", get(home))
-    .route("/tos", get(tos))
+    .route("/", get(web::home))
+    .route("/tos", get(web::tos))
     .route(
       "/:id",
       put(upload).get_service(ServeDir::new(&config.file_dir)),
@@ -138,34 +152,6 @@ async fn check_dupes(hashes: &mut HashMap<Hash, String>, path: PathBuf) -> Resul
     fs::symlink(original_path, &path).await?;
   }
   Ok(())
-}
-
-#[derive(Template)]
-#[template(path = "home.html")]
-struct Home {
-  total: usize,
-  max: usize,
-  ver: &'static str,
-}
-
-async fn home(State(state): State<ArcState>) -> Home {
-  Home {
-    total: *state.file_count.read().await,
-    max: state.config.max_size,
-    ver: env!("CARGO_PKG_VERSION"),
-  }
-}
-
-#[derive(Template)]
-#[template(path = "tos.html")]
-struct Tos {
-  ver: &'static str,
-}
-
-async fn tos() -> Tos {
-  Tos {
-    ver: env!("CARGO_PKG_VERSION"),
-  }
 }
 
 #[derive(Debug)]

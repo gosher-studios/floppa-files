@@ -2,3 +2,4 @@ target/
 files/
 static/main.css
 config.toml
+*.log
