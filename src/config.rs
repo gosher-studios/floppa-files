@@ -8,6 +8,8 @@ use serde::{Serialize, Deserialize};
 pub struct Config {
   pub max_size: usize,
   pub file_dir: PathBuf,
+  pub allow_empty_files: bool,
+  pub prefix_length: usize,
   pub listen: SocketAddr,
   pub log_file: PathBuf,
 }
@@ -17,6 +19,8 @@ impl Default for Config {
     Self {
       max_size: 5 * 1000 * 1000 * 1000,
       file_dir: "files".into(),
+      allow_empty_files: false,
+      prefix_length: 8,
       listen: ([0, 0, 0, 0], 3000).into(),
       log_file: format!("{}.log", env!("CARGO_BIN_NAME")).into(),
     }
@@ -37,7 +41,7 @@ impl Config {
           .await?;
           default_config
         }
-        _ => return Err(err.into()),
+        _ => return Err(err),
       },
     };
     Ok(config)

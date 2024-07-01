@@ -34,6 +34,10 @@ const closeQr = () => {
 
 const upload = async (files) => {
   for (let file of files) {
+    if (!allowEmpty && file.size == 0) {
+      createToast("Empty files are disallowed");
+      continue;
+    }
     if (file.size > maxSize) {
       createToast(`${file.name} is larger than ${prettyFileSize(maxSize, 0)}`);
       continue;

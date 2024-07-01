@@ -19,15 +19,15 @@ use futures::TryStreamExt;
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, Path, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{Response, IntoResponse};
 use axum::routing::{get, put};
 use tokio_util::io::StreamReader;
 use tower_http::services::ServeDir;
-use nanoid::nanoid;
 use tracing::{info, warn, error};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::fmt::time::ChronoUtc;
 use blake3::{Hash, Hasher};
 use crate::config::Config;
 
@@ -36,6 +36,7 @@ type ArcState = Arc<AppState>;
 const REPLACE_CHARS: [char; 13] = [
   '/', '\\', '&', '?', '"', '\'', '*', '~', '|', ':', '<', '>', ' ',
 ];
+const VER: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug)]
 struct AppState {
@@ -47,6 +48,8 @@ struct AppState {
 #[tokio::main]
 async fn main() -> Result<(), io::Error> {
   let config = Config::load(env::var("FLOPPA_CONFIG").unwrap_or("config.toml".into())).await?;
+
+  let timer = ChronoUtc::new("%FT%T".into());
   tracing_subscriber::registry()
     .with(LevelFilter::INFO)
     .with(
@@ -58,24 +61,32 @@ async fn main() -> Result<(), io::Error> {
             .open(&config.log_file)?,
         )
         .with_ansi(false)
-        .with_level(false)
-        .with_target(false),
+        .with_target(false)
+        .with_timer(timer.clone()),
     )
-    .with(tracing_subscriber::fmt::layer())
+    .with(tracing_subscriber::fmt::layer().with_timer(timer))
     .init();
+
+  info!("floppa files v{}", VER);
+  info!(
+    max_size = config.max_size,
+    file_dir = ?config.file_dir,
+    allow_empty_files = config.allow_empty_files,
+    prefix_length = config.prefix_length
+  );
 
   if fs::create_dir(&config.file_dir).await.is_ok() {
     info!("created files directory {:?}", &config.file_dir)
   };
 
-  let (tx, rx) = mpsc::unbounded_channel();
+  let (path_tx, path_rx) = mpsc::unbounded_channel();
   let state = Arc::new(AppState {
     file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
     config: config.clone(),
-    path_tx: tx,
+    path_tx,
   });
 
-  tokio::spawn(deduper(config.clone(), rx));
+  tokio::spawn(deduper(config.clone(), path_rx));
 
   let app = Router::new()
     .route("/", get(web::home))
@@ -102,9 +113,29 @@ async fn upload(
   Path(id): Path<String>,
   State(state): State<ArcState>,
   InsecureClientIp(ip): InsecureClientIp,
+  headers: HeaderMap,
   body: Body,
 ) -> Result<Response, AppError> {
-  let file_name = format!("{}.{}", nanoid!(8), id.replace(REPLACE_CHARS, "-"));
+  if !state.config.allow_empty_files {
+    match headers
+      .get("content-length")
+      .and_then(|v| v.to_str().ok())
+      .and_then(|v| v.parse::<u64>().ok())
+    {
+      Some(size) if size > 0 => {}
+      _ => return Ok(StatusCode::BAD_REQUEST.into_response()),
+    };
+  }
+
+  let file_name = format!(
+    "{}.{}",
+    nanoid::format(
+      nanoid::rngs::default,
+      &nanoid::alphabet::SAFE,
+      state.config.prefix_length
+    ),
+    id.replace(REPLACE_CHARS, "-")
+  );
   let path = state.config.file_dir.join(&file_name);
   let mut file = File::create(&path).await?;
 
