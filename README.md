@@ -7,8 +7,7 @@ silly file host service
 You need [nodejs](https://nodejs.org/,) along with npm & npx for tailwindcss
 Floppa Files contains submodules, on clone run 
 ```sh
-  git submodule init
-  git submodule update
+  git submodule update --init
 ```
 
 ## Building
