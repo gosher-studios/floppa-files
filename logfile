@@ -1,0 +1,17 @@
+2024-07-01T09:57:44.464963Z server listening on http://0.0.0.0:3000
+2024-07-01T10:14:12.937515Z server listening on http://0.0.0.0:3000
+2024-07-01T10:18:14.529046Z 127.0.0.1 uploaded EVM4J8D2...%c0%2f%c0%73%c0%72%c0%63%c0%2f%c0%6d%c0%61%c0%69%c0%6e%c0%2e%c0%72%c0%73
+2024-07-01T10:25:42.912371Z error uploading nmfcI2uR.testfile (error reading a body from connection)
+2024-07-01T10:25:43.595502Z I/O error "error reading a body from connection"
+2024-07-01T10:28:00.229763Z 127.0.0.1 uploaded Hk1-wKYb.testfile
+2024-07-01T10:29:04.247507Z 127.0.0.1 uploaded TELjL4Qf.testfile
+2024-07-01T10:29:10.335955Z deduplicating "TELjL4Qf.testfile", copy of "Hk1-wKYb.testfile"
+2024-07-01T10:29:47.869976Z 127.0.0.1 uploaded L_UVMvFq.testfile
+2024-07-01T10:29:48.859335Z deduplicating "L_UVMvFq.testfile", copy of "Hk1-wKYb.testfile"
+2024-07-01T10:30:13.586208Z 127.0.0.1 uploaded S5V5HUEo.testfile
+2024-07-01T10:30:14.495768Z deduplicating "S5V5HUEo.testfile", copy of "Hk1-wKYb.testfile"
+2024-07-01T10:40:13.379749Z server listening on http://0.0.0.0:3000
+2024-07-01T10:41:32.925922Z 127.0.0.1 uploaded kAAWQHwC.cover.png
+2024-07-01T10:41:32.933369Z deduplicating "kAAWQHwC.cover.png", copy of "i9tGzoOE.cover.png"
+2024-07-01T10:41:53.520290Z 127.0.0.1 uploaded cPh_-GBI.cover.png
+2024-07-01T10:41:53.527963Z deduplicating "cPh_-GBI.cover.png", copy of "i9tGzoOE.cover.png"

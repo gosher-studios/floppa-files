@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::path::PathBuf;
 use std::fs::OpenOptions;
 use axum_client_ip::InsecureClientIp;
+use thiserror::Error;
 use tokio::{fs, io};
 use tokio::net::TcpListener;
 use tokio::fs::File;
@@ -109,12 +110,12 @@ async fn upload(
   let path = state.config.file_dir.join(&file_name);
   let mut file = File::create(&path).await?;
 
-  let mut reader = StreamReader::new(body.into_data_stream().map_err(|e| io::Error::other(e)));
+  let mut reader = StreamReader::new(body.into_data_stream().map_err(io::Error::other));
   match io::copy(&mut reader, &mut file).await {
     Ok(_) => {
       info!("{} uploaded {}", ip, file_name);
       *state.file_count.write().await += 1;
-      state.path_tx.send(path).unwrap();
+      state.path_tx.send(path)?;
       Ok(file_name.into_response())
     }
     Err(err) => {
@@ -143,7 +144,7 @@ async fn check_dupes(hashes: &mut HashMap<Hash, String>, path: PathBuf) -> Resul
   let mut hasher = Hasher::new();
   hasher.update_mmap(&path)?;
   let hash = hasher.finalize();
-
+  // both unwraps here are sane, no need to match Err as input is already sanitized, and if it breaks :9
   let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
   if let Err(e) = hashes.try_insert(hash, file_name.clone()) {
     let original_path = e.entry.get();
@@ -154,18 +155,20 @@ async fn check_dupes(hashes: &mut HashMap<Hash, String>, path: PathBuf) -> Resul
   Ok(())
 }
 
-#[derive(Debug)]
-struct AppError(std::io::Error);
+#[derive(Error, Debug)]
+enum AppError {
+  #[error("io error")]
+  Io(#[from] std::io::Error),
+  #[error("send error")]
+  Send(#[from] tokio::sync::mpsc::error::SendError<PathBuf>),
+}
 
 impl IntoResponse for AppError {
   fn into_response(self) -> Response {
-    error!("{}", self.0);
+    match self {
+      AppError::Io(e) => error!("{}", format!("I/O error {:?}", e.to_string())),
+      AppError::Send(e) => error!("{}", format!("Send error {:?}", e.to_string())),
+    };
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
-  }
-}
-
-impl From<std::io::Error> for AppError {
-  fn from(value: std::io::Error) -> Self {
-    Self(value)
   }
 }
