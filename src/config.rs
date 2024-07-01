@@ -2,7 +2,6 @@ use std::net::SocketAddr;
 use std::path::{PathBuf, Path};
 use tokio::{fs, io};
 use serde::{Serialize, Deserialize};
-use crate::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
@@ -25,13 +24,17 @@ impl Default for Config {
 }
 
 impl Config {
-  pub async fn load<P: AsRef<Path>>(file: P) -> Result<Self> {
+  pub async fn load<P: AsRef<Path>>(file: P) -> Result<Self, io::Error> {
     let config = match fs::read_to_string(&file).await {
-      Ok(contents) => toml::from_str(&contents)?,
+      Ok(contents) => toml::from_str(&contents).map_err(io::Error::other)?,
       Err(err) => match err.kind() {
         io::ErrorKind::NotFound => {
           let default_config = Config::default();
-          fs::write(&file, toml::to_string_pretty(&default_config)?).await?;
+          fs::write(
+            &file,
+            toml::to_string_pretty(&default_config).map_err(io::Error::other)?,
+          )
+          .await?;
           default_config
         }
         _ => return Err(err.into()),
