@@ -5,6 +5,11 @@ silly file host service
 ## Prerequisites
 
 You need [nodejs](https://nodejs.org/,) along with npm & npx for tailwindcss
+Floppa Files contains submodules, on clone run 
+```sh
+  git submodule init
+  git submodule update
+```
 
 ## Building
 
@@ -13,5 +18,4 @@ cargo build --release # remove --release for a non release build
 ```
 
 ## Benchmarking
-
-Floppa files uses [Fio](https://github.com/axboe/fio) to benchmark,
+TODO
