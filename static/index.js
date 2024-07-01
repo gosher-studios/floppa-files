@@ -10,6 +10,7 @@ const dragOverHandler = (e) => {
 
 const uploadHandler = (e) => {
   upload(Array.from(e.target.files));
+  e.target.value = null;
 };
 
 const qr = new QRCode(document.getElementById("qr"), {

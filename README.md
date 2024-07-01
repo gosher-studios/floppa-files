@@ -12,7 +12,6 @@ You need [nodejs](https://nodejs.org/,) along with npm & npx for tailwindcss
 cargo build --release # remove --release for a non release build
 ```
 
-## TODO
+## Benchmarking
 
-- [ ] compression
-- [ ] make other cool features
+Floppa files uses [Fio](https://github.com/axboe/fio) to benchmark,
