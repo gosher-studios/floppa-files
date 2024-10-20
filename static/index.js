@@ -45,14 +45,18 @@ const upload = async (files) => {
     createToast(`Uploading ${file.name}`);
 
     let progress = document.createElement("div");
-    progress.className = "my-1 border-2 border-bg flex justify-between";
+    progress.className = "my-1 border-2 border-bg flex relative";
 
-    let progressInner = document.createElement("div");
-    progressInner.className = "bg-bg pl-1 overflow-visible whitespace-nowrap";
-    progress.appendChild(progressInner);
+    let progressBar = document.createElement("div");
+    progressBar.className = "absolute bg-bg left-0 inset-y-0";
+    progress.appendChild(progressBar);
+
+    let progressText = document.createElement("span");
+    progressText.className = "px-1 flex-1 min-w-0 truncate z-10";
+    progress.appendChild(progressText);
 
     let progressRight = document.createElement("span");
-    progressRight.className = "pr-1 hidden md:block";
+    progressRight.className = "px-1 z-10 hidden md:block";
     progress.appendChild(progressRight);
 
     document.getElementById("list").appendChild(progress);
@@ -63,8 +67,8 @@ const upload = async (files) => {
       req.open("PUT", `/${file.name}`);
       req.upload.addEventListener("progress", (e) => {
         let prog = (e.loaded / file.size) * 100.0;
-        progressInner.innerText = `${Math.round(prog)}% ${file.name}`;
-        progressInner.style.width = `${prog}%`;
+        progressBar.style.width = `${prog}%`;
+        progressText.innerText = `${Math.round(prog)}% ${file.name}`;
         progressRight.innerText = `${prettyFileSize(e.loaded, 2)}/${prettyFileSize(file.size, 2)}`;
       });
       req.addEventListener("error", () => reject(req));
@@ -112,7 +116,7 @@ const upload = async (files) => {
 const createToast = (msg) => {
   const toast = document.createElement("div");
   toast.innerText = msg;
-  toast.className = "bg-bg border-2 border-fg p-1";
+  toast.className = "bg-bg border-2 border-fg p-1 w-full md:w-96";
   document.getElementById("toast-container").appendChild(toast);
   setTimeout(() => {
     toast.remove();
