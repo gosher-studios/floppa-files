@@ -72,7 +72,8 @@ async fn main() -> Result<(), io::Error> {
     max_size = config.max_size,
     file_dir = ?config.file_dir,
     allow_empty_files = config.allow_empty_files,
-    prefix_length = config.prefix_length
+    prefix_length = config.prefix_length,
+    compress_size = config.compress_count
   );
 
   if fs::create_dir(&config.file_dir).await.is_ok() {

@@ -18,9 +18,10 @@
   <div>
     <p class="text-white"># Info:</p>
     <p><i class="fa-solid fa-file"></i> <span id="max">...</span> max file size</p>
+    <p><i class="fa-solid fa-file-zipper"></i> more than <span id="count">...</span> files are automatically zipped
     <p>
       <i class="fa-solid fa-database"></i>
-      <span id="total">{{total}}</span> files uploaded
+      <span id="total">{{total}}</span> {% if total == 1 %} file {% else %} files {% endif %} uploaded
     </p>
     <p>
       <i class="fa-solid fa-circle-info"></i> By uploading, you agree to the
@@ -41,10 +42,13 @@
   let fileCount = {{total}};
   let maxSize = {{max}};
   let allowEmpty = {{allow_empty}};
+  let compressCount = {{compress_count}}
 
   document.getElementById("curl").innerText = location.origin;
   document.getElementById("max").innerText = prettyFileSize(maxSize, 0);
+  document.getElementById("count").innerText = compressCount;
 </script>
 <script src="/static/qrcode.min.js"></script>
-<script src="/static/index.js"></script>
+<script src="/static/zip.min.js"></script>
+<script src="/static/index.js" defer></script>
 {% endblock %}
