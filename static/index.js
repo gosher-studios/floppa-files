@@ -38,6 +38,7 @@ const closeQr = () => {
 
 const upload = async (files) => {
   if (files.length >= compressCount) {
+    createToast("Zipping Files");
     for (let file of files) {
       await writer.add(file.name, new zip.TextReader(file))
     }
