@@ -22,6 +22,10 @@ const qr = new QRCode(document.getElementById("qr"), {
   correctLevel: QRCode.CorrectLevel.M,
 });
 
+const blobWriter = new zip.BlobWriter("application/zip");
+const writer = new zip.ZipWriter(blobWriter);
+
+
 const showQr = (url) => {
   document.getElementById("qr-container").classList.replace("hidden", "fixed");
   qr.clear();
@@ -33,6 +37,14 @@ const closeQr = () => {
 };
 
 const upload = async (files) => {
+  if (files.length >= compressCount) {
+    for (let file of files) {
+      await writer.add(file.name, new zip.TextReader(file))
+    }
+    await writer.close();
+    files = [await blobWriter.getData()];
+    files[0].name = "files.zip"
+  }
   for (let file of files) {
     if (!allowEmpty && file.size == 0) {
       createToast("Empty files are disallowed");
