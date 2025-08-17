@@ -29,6 +29,7 @@ use tracing_subscriber::prelude::*;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::time::ChronoUtc;
 use blake3::{Hash, Hasher};
+use timedmap::TimedMap;
 use crate::config::Config;
 
 type ArcState = Arc<AppState>;
@@ -41,8 +42,15 @@ const VER: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug)]
 struct AppState {
   file_count: RwLock<usize>,
+  temp_files: TimedMap<String, TFile>,
   config: Config,
   path_tx: UnboundedSender<PathBuf>,
+}
+
+#[derive(Debug)]
+struct TFile {
+  path: PathBuf,
+  chunk: usize,
 }
 
 #[tokio::main]
@@ -85,6 +93,7 @@ async fn main() -> Result<(), io::Error> {
     file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
     config: config.clone(),
     path_tx,
+    temp_files: TimedMap::new(),
   });
 
   tokio::spawn(deduper(config.clone(), path_rx));

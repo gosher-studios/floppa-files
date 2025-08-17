@@ -10,6 +10,8 @@ pub struct Config {
   pub file_dir: PathBuf,
   pub allow_empty_files: bool,
   pub compress_count: usize,
+  pub chunking_target: usize,
+  pub chunking_threshold: usize,
   pub prefix_length: usize,
   pub listen: SocketAddr,
   pub log_file: PathBuf,
@@ -25,6 +27,8 @@ impl Default for Config {
       prefix_length: 8,
       listen: ([0, 0, 0, 0], 3000).into(),
       log_file: format!("{}.log", env!("CARGO_BIN_NAME")).into(),
+      chunking_target: 1024,
+      chunking_threshold: 5 * 1000,
     }
   }
 }
