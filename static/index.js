@@ -79,7 +79,8 @@ const upload = async (files) => {
       let req = new XMLHttpRequest();
       req.open("PUT", `/${file.name}`);
       req.upload.addEventListener("progress", (e) => {
-        let prog = (e.loaded / file.size) * 100.0;
+        console.log(e.loaded);
+        let prog = (e.loaded / e.total) * 100.0;
         progressBar.style.width = `${prog}%`;
         progressText.innerText = `${Math.round(prog)}% ${file.name}`;
         progressRight.innerText = `${prettyFileSize(e.loaded, 2)}/${prettyFileSize(file.size, 2)}`;
