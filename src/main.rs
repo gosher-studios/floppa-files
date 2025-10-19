@@ -6,7 +6,6 @@ use std::any::Any;
 use std::env;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::hash::Hash;
 use std::net::SocketAddr;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
