@@ -18,10 +18,13 @@
   <div>
     <p class="text-white"># Info:</p>
     <p><i class="fa-solid fa-file"></i> <span id="max">...</span> max file size</p>
-    <p><i class="fa-solid fa-file-zipper"></i> more than <span id="count">...</span> files are automatically zipped
+    <p><i class="fa-solid fa-file-zipper"></i> More than <span id="count">...</span> files are automatically zipped
     <p>
       <i class="fa-solid fa-database"></i>
       <span id="total">{{total}}</span> {% if total == 1 %} file {% else %} files {% endif %} uploaded
+    </p>
+    <p>
+      <i class="fa-solid fa-history"></i> <button class="underline"> Restore History </button>
     </p>
     <p>
       <i class="fa-solid fa-circle-info"></i> By uploading, you agree to the
@@ -42,7 +45,6 @@
   let fileCount = {{total}};
   let maxSize = {{max}};
   let chunkTarget = {{target}};
-  let chunkThreshold = {{threshold}}
   let allowEmpty = {{allow_empty}};
   let compressCount = {{compress_count}}
 

@@ -127,6 +127,24 @@ const upload = async (files) => {
   }
 };
 
+
+const uploadChunked = async (files) => {
+  
+  if (files.length >= compressCount) {
+    createToast("Zipping Files");
+    for (let file of files) {
+      await writer.add(file.name, new zip.TextReader(file))
+    }
+    await writer.close();
+    files = [await blobWriter.getData()];
+    files[0].name = "files.zip"
+  }
+
+  for (let file of files) {
+    
+  }
+}
+
 const createToast = (msg) => {
   const toast = document.createElement("div");
   toast.innerText = msg;

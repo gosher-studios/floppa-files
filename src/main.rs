@@ -2,14 +2,21 @@
 mod config;
 mod web;
 
+use std::any::Any;
 use std::env;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::net::SocketAddr;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::path::PathBuf;
 use std::fs::OpenOptions;
+use std::time::Duration;
 use axum_client_ip::InsecureClientIp;
+use futures::lock::Mutex;
+use nanoid::nanoid;
+use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio::{fs, io};
 use tokio::net::TcpListener;
 use tokio::fs::File;
@@ -17,7 +24,7 @@ use tokio::sync::{RwLock, mpsc};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures::TryStreamExt;
 use axum::Router;
-use axum::body::Body;
+use axum::body::{Body, Bytes};
 use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{Response, IntoResponse};
@@ -28,7 +35,7 @@ use tracing::{info, warn, error};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::time::ChronoUtc;
-use blake3::{Hash, Hasher};
+use blake3::{hash, Hash, Hasher};
 use timedmap::TimedMap;
 use crate::config::Config;
 
@@ -42,15 +49,18 @@ const VER: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug)]
 struct AppState {
   file_count: RwLock<usize>,
-  temp_files: TimedMap<String, TFile>,
+  temp_files: RwLock<TimedMap<String, FileUpload>>,
   config: Config,
   path_tx: UnboundedSender<PathBuf>,
 }
 
-#[derive(Debug)]
-struct TFile {
-  path: PathBuf,
-  chunk: usize,
+#[derive(Debug, Clone)]
+struct FileUpload {
+  file: Arc<Mutex<BufWriter<File>>>,
+  file_name: String,
+  chunk_size: usize,
+  last_chunk: usize,
+  last_hash: Hash,
 }
 
 #[tokio::main]
@@ -93,9 +103,8 @@ async fn main() -> Result<(), io::Error> {
     file_count: RwLock::new(std::fs::read_dir(&config.file_dir)?.count()),
     config: config.clone(),
     path_tx,
-    temp_files: TimedMap::new(),
+    temp_files: RwLock::new(TimedMap::new()),
   });
-
   tokio::spawn(deduper(config.clone(), path_rx));
 
   let app = Router::new()
@@ -105,6 +114,7 @@ async fn main() -> Result<(), io::Error> {
       "/:id",
       put(upload).get_service(ServeDir::new(&config.file_dir)),
     )
+    .route("/begin/:id/:size", get(begin_upload))
     .layer(DefaultBodyLimit::max(config.max_size))
     .nest_service("/static", ServeDir::new("static"))
     .with_state(state);
@@ -163,6 +173,68 @@ async fn upload(
       Err(err.into())
     }
   }
+}
+
+async fn begin_upload(
+  Path((id, size)): Path<(String, usize)>,
+  State(state): State<ArcState>,
+) -> Result<Response<Body>, AppError> {
+  let c = &state.config;
+  if size > state.config.max_size {
+    return Ok(StatusCode::PAYLOAD_TOO_LARGE.into_response());
+  }
+  let file_name = format!(
+    "{}.{}",
+    nanoid::format(
+      nanoid::rngs::default,
+      &nanoid::alphabet::SAFE,
+      c.prefix_length
+    ),
+    id.replace(REPLACE_CHARS, "-")
+  );
+
+  
+  let ret_id = nanoid::format(nanoid::rngs::default, &nanoid::alphabet::SAFE, 16);
+  let path = c.file_dir.join(&file_name);
+  let file = File::create(&path).await?;
+  let buf = BufWriter::new(file);
+
+  let up: FileUpload = FileUpload {
+    file: Arc::new(Mutex::new(buf)),
+    last_chunk: 0,
+    last_hash: Hash::from_bytes([0; 32]),
+    file_name,
+    chunk_size: c.max_chunk.min(size / c.chunking_target),
+  };
+
+  state.temp_files.write().await.deref().insert(
+    ret_id.clone(),
+    up,
+    Duration::from_secs(c.delete_time as u64),
+  );
+
+  Ok(ret_id.into_response())
+}
+
+async fn upload_new(
+  Path((id, idx)): Path<(String, String)>,
+  State(state): State<ArcState>,
+  headers: HeaderMap,
+  body: Bytes,
+) -> Result<Response, AppError> {
+  let mut f = state.clone().temp_files.write().await.get(&id).unwrap();
+  if !state.config.allow_empty_files {
+    match headers
+      .get("content-length")
+      .and_then(|v| v.to_str().ok())
+      .and_then(|v| v.parse::<u64>().ok())
+    {
+      Some(size) if size > 0 && size <= f.chunk_size as u64 => {}
+      _ => return Ok(StatusCode::BAD_REQUEST.into_response()),
+    };
+  }
+  // todo get hash, todo append to file, todo continue
+  todo!()
 }
 
 async fn deduper(config: Config, mut rx: UnboundedReceiver<PathBuf>) -> Result<(), io::Error> {
