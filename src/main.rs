@@ -233,7 +233,7 @@ async fn upload_new(
       _ => return Ok(StatusCode::BAD_REQUEST.into_response()),
     };
   }
-  // todo get hash, todo append to file, todo continue
+  // todo get hash, todo append to file
   todo!()
 }
 

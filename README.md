@@ -24,3 +24,9 @@ if you would like to change the images that show up, replace static/0..4.png wit
 ## Current implementations
 - pausable/chunkable files
 - history
+
+
+## TODOS
+- frontend pausing/chunking (look into opfs gosha from tmrw)
+- backend finish up, and deal with deletion
+- CANCEL FILE LINE
