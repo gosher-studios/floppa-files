@@ -182,7 +182,6 @@ struct Return {
   size: usize,
 }
 
-
 #[axum::debug_handler]
 async fn begin_upload(
   Path((id, size)): Path<(String, usize)>,
@@ -228,7 +227,6 @@ async fn begin_upload(
   Ok(Json(r).into_response())
 }
 
-
 // currently only writes to first data which is a bit confusing
 async fn upload_new(
   Path((id, idx)): Path<(String, usize)>,
@@ -250,17 +248,21 @@ async fn upload_new(
   let mut buf_writer = f.file.lock().await;
   // seeking may be kinda fucked, i think i require a modulo operation
   let h = hash(&body.split_at(32).0);
-  buf_writer
-    .seek(std::io::SeekFrom::Start((idx * f.chunk_size) as u64 % 32))
+  let seek = (idx * f.chunk_size) as u64;
+  let p = buf_writer
+    .seek(std::io::SeekFrom::Start(seek))
     .await
     .unwrap();
-  buf_writer.write(&body).await.unwrap();
-  info!("uploading chunk {:?} of file {:?}",idx,id);
+  let d = buf_writer.write(&body).await.unwrap();
+  info!(
+    "uploading chunk {:?}: with amount {:?} at position {:?} of file {:?}, seeking from {:?}, with size {:?}",
+    idx, d, p, id,seek,f.chunk_size
+  );
   f.last_chunk += 1;
   f.last_hash = h;
 
   //TODO Todo
-  todo!()
+  Ok(().into_response())
 }
 
 async fn end_upload(
@@ -270,7 +272,6 @@ async fn end_upload(
   let f = state.clone().temp_files.write().await.get(&id).unwrap();
   let mut buf_writer = f.file.lock().await;
   buf_writer.flush().await.unwrap();
-  buf_writer.shutdown().await.unwrap();
   let r = (f.file_name).into_response();
   state.clone().temp_files.write().await.remove(&id).unwrap();
   Ok(r)
