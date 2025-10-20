@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 askama = { version = "0.12", features = ["with-axum"] }
 askama_axum = "0.4"
-axum = "0.7"
+axum = { version = "0.7", features = ["macros"] }
 axum-client-ip = "0.5"
 blake3 = { version = "1.5", features = ["mmap"] }
 futures = "0.3"

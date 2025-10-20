@@ -2,7 +2,6 @@
 mod config;
 mod web;
 
-use std::any::Any;
 use std::env;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -15,14 +14,15 @@ use std::time::Duration;
 use axum_client_ip::InsecureClientIp;
 use futures::lock::Mutex;
 use nanoid::nanoid;
-use tokio::io::{AsyncWriteExt, BufWriter};
+use serde::{Deserialize, Serialize};
+use tokio::io::{AsyncSeekExt, AsyncWriteExt, BufWriter};
 use tokio::{fs, io};
 use tokio::net::TcpListener;
 use tokio::fs::File;
 use tokio::sync::{RwLock, mpsc};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures::TryStreamExt;
-use axum::Router;
+use axum::{Json, Router};
 use axum::body::{Body, Bytes};
 use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -114,6 +114,8 @@ async fn main() -> Result<(), io::Error> {
       put(upload).get_service(ServeDir::new(&config.file_dir)),
     )
     .route("/begin/:id/:size", get(begin_upload))
+    .route("/end/:id", get(end_upload))
+    .route("/up/:id/:idx", put(upload_new))
     .layer(DefaultBodyLimit::max(config.max_size))
     .nest_service("/static", ServeDir::new("static"))
     .with_state(state);
@@ -174,13 +176,21 @@ async fn upload(
   }
 }
 
+#[derive(Serialize, Deserialize)]
+struct Return {
+  id: String,
+  size: usize,
+}
+
+
+#[axum::debug_handler]
 async fn begin_upload(
   Path((id, size)): Path<(String, usize)>,
   State(state): State<ArcState>,
-) -> Result<Response<Body>, AppError> {
+) -> Result<Response, AppError> {
   let c = &state.config;
   if size > state.config.max_size {
-    return Ok(StatusCode::PAYLOAD_TOO_LARGE.into_response());
+    return Ok((StatusCode::PAYLOAD_TOO_LARGE).into_response());
   }
   let file_name = format!(
     "{}.{}",
@@ -192,18 +202,18 @@ async fn begin_upload(
     id.replace(REPLACE_CHARS, "-")
   );
 
-  
   let ret_id = nanoid::format(nanoid::rngs::default, &nanoid::alphabet::SAFE, 16);
   let path = c.file_dir.join(&file_name);
   let file = File::create(&path).await?;
   let buf = BufWriter::new(file);
-
+  // TODO replace magic number 32 with config
+  let chunk_size = c.max_chunk.min(size / c.chunking_target);
   let up: FileUpload = FileUpload {
     file: Arc::new(Mutex::new(buf)),
     last_chunk: 0,
     last_hash: Hash::from_bytes([0; 32]),
     file_name,
-    chunk_size: c.max_chunk.min(size / c.chunking_target),
+    chunk_size: chunk_size.clone(),
   };
 
   state.temp_files.write().await.deref().insert(
@@ -211,12 +221,17 @@ async fn begin_upload(
     up,
     Duration::from_secs(c.delete_time as u64),
   );
-
-  Ok(ret_id.into_response())
+  let r = Return {
+    id: ret_id,
+    size: chunk_size,
+  };
+  Ok(Json(r).into_response())
 }
 
+
+// currently only writes to first data which is a bit confusing
 async fn upload_new(
-  Path((id, idx)): Path<(String, String)>,
+  Path((id, idx)): Path<(String, usize)>,
   State(state): State<ArcState>,
   headers: HeaderMap,
   body: Bytes,
@@ -232,8 +247,33 @@ async fn upload_new(
       _ => return Ok(StatusCode::BAD_REQUEST.into_response()),
     };
   }
-  // todo get hash, todo append to file
+  let mut buf_writer = f.file.lock().await;
+  // seeking may be kinda fucked, i think i require a modulo operation
+  let h = hash(&body.split_at(32).0);
+  buf_writer
+    .seek(std::io::SeekFrom::Start((idx * f.chunk_size) as u64 % 32))
+    .await
+    .unwrap();
+  buf_writer.write(&body).await.unwrap();
+  info!("uploading chunk {:?} of file {:?}",idx,id);
+  f.last_chunk += 1;
+  f.last_hash = h;
+
+  //TODO Todo
   todo!()
+}
+
+async fn end_upload(
+  Path(id): Path<String>,
+  State(state): State<ArcState>,
+) -> Result<Response, AppError> {
+  let f = state.clone().temp_files.write().await.get(&id).unwrap();
+  let mut buf_writer = f.file.lock().await;
+  buf_writer.flush().await.unwrap();
+  buf_writer.shutdown().await.unwrap();
+  let r = (f.file_name).into_response();
+  state.clone().temp_files.write().await.remove(&id).unwrap();
+  Ok(r)
 }
 
 async fn deduper(config: Config, mut rx: UnboundedReceiver<PathBuf>) -> Result<(), io::Error> {
