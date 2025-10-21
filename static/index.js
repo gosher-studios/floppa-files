@@ -141,15 +141,66 @@ const uploadChunked = async (files) => {
     files[0].name = "files.zip"
   }
 
+  createToast(`Uploading ${file.name}`);
   for (let file of files) {
-    let x = (window.fetch("/begin/"+file.name+"/"+file.size));
-      x.then((data) => {
-      console.log(data);
-    }).catch(() => {
-      let err =document.createElement("span");
-      err.innerText = 'im sorry everything exploded'
-      progress.replaceWith(err);
-    })
+    let j = await window.fetch("/begin/" + file.name + "/" + file.size)
+      .then((res) => {
+        if (!res.ok) {
+          console.log("trolled");
+        }
+        return res.json()
+      }).then((j) => {
+        return j;
+      }).catch(() => {
+        let err = document.createElement("span");
+        err.innerText = 'im sorry everything exploded'
+        progress.replaceWith(err);
+      });
+
+    for (i = 0; i < j.count; i++) {
+      let t = file.slice(i * j.size, (i + 1) * j.size);
+      new Promise((resolve, reject) => {
+        let req = new XMLHttpRequest();
+        req.open("PUT", `/up/${j.id}/${i}`);
+        req.send(t);
+      }).then((res) => {
+        console.log(res);
+      }).catch((e) => { });
+    }
+    window.fetch(`/end/${j.id}`).then((res) => {
+      let fileName = res.responseText;
+      let url = `${location.origin}/${fileName}`;
+      createToast(`Uploaded ${fileName}`);
+
+      let newLog = document.createElement("div");
+      newLog.className = "space-x-2";
+
+      let qr = document.createElement("span");
+      qr.innerText = "qr";
+      qr.className = "underline cursor-pointer";
+      qr.onclick = () => {
+        showQr(url);
+      };
+      newLog.appendChild(qr);
+
+      let file = document.createElement("span");
+      file.innerText = fileName;
+      file.className = "underline cursor-pointer";
+      file.onclick = () => {
+        navigator.clipboard.writeText(url);
+        createToast("Copied to clipboard");
+      };
+      newLog.appendChild(file);
+
+      progress.replaceWith(newLog);
+      fileCount++;
+      document.getElementById("total").innerText = fileCount;
+
+
+
+    }).catch((e) => { console.log("moreexploding") })
+
+
   }
 }
 

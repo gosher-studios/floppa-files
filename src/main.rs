@@ -275,6 +275,7 @@ async fn end_upload(
   buf_writer.flush().await.unwrap();
   let r = (f.file_name).into_response();
   state.clone().temp_files.write().await.remove(&id).unwrap();
+  info!("finished uploading file {:?}",r);
   Ok(r)
 }
 
