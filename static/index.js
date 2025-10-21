@@ -9,7 +9,9 @@ const dragOverHandler = (e) => {
 };
 
 const uploadHandler = (e) => {
-  upload(Array.from(e.target.files));
+  console.log("I AM SCREAMING INTO THE VOID");
+  uploadChunked(Array.from(e.target.files));
+  // upload(Array.from(e.target.files));
   e.target.value = null;
 };
 
@@ -79,7 +81,6 @@ const upload = async (files) => {
       let req = new XMLHttpRequest();
       req.open("PUT", `/${file.name}`);
       req.upload.addEventListener("progress", (e) => {
-        console.log(e.loaded);
         let prog = (e.loaded / e.total) * 100.0;
         progressBar.style.width = `${prog}%`;
         progressText.innerText = `${Math.round(prog)}% ${file.name}`;
@@ -129,7 +130,7 @@ const upload = async (files) => {
 
 
 const uploadChunked = async (files) => {
-  
+  console.log("chunking my upload");
   if (files.length >= compressCount) {
     createToast("Zipping Files");
     for (let file of files) {
@@ -141,7 +142,14 @@ const uploadChunked = async (files) => {
   }
 
   for (let file of files) {
-    
+    let x = (window.fetch("/begin/"+file.name+"/"+file.size));
+      x.then((data) => {
+      console.log(data);
+    }).catch(() => {
+      let err =document.createElement("span");
+      err.innerText = 'im sorry everything exploded'
+      progress.replaceWith(err);
+    })
   }
 }
 

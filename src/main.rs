@@ -176,10 +176,11 @@ async fn upload(
   }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Debug)]
 struct Return {
   id: String,
   size: usize,
+  count: usize,
 }
 
 #[axum::debug_handler]
@@ -204,9 +205,9 @@ async fn begin_upload(
   let ret_id = nanoid::format(nanoid::rngs::default, &nanoid::alphabet::SAFE, 16);
   let path = c.file_dir.join(&file_name);
   let file = File::create(&path).await?;
-  let buf = BufWriter::new(file);
   // TODO replace magic number 32 with config
   let chunk_size = c.max_chunk.min(size / c.chunking_target);
+  let buf = BufWriter::with_capacity(chunk_size * 32, file);
   let up: FileUpload = FileUpload {
     file: Arc::new(Mutex::new(buf)),
     last_chunk: 0,
@@ -222,8 +223,11 @@ async fn begin_upload(
   );
   let r = Return {
     id: ret_id,
+    count: size / chunk_size,
     size: chunk_size,
+
   };
+  info!("created file for upload {:?}", r);
   Ok(Json(r).into_response())
 }
 
@@ -246,18 +250,15 @@ async fn upload_new(
     };
   }
   let mut buf_writer = f.file.lock().await;
-  // seeking may be kinda fucked, i think i require a modulo operation
   let h = hash(&body.split_at(32).0);
-  let seek = (idx * f.chunk_size) as u64;
-  let p = buf_writer
-    .seek(std::io::SeekFrom::Start(seek))
-    .await
-    .unwrap();
+  let seek = (idx % 32) * (f.chunk_size);
+  //TODO fix seek so it can handle "concurrent"/"out of order operations"
+  // let p = buf_writer
+  //   .seek(std::io::SeekFrom::Start(seek as u64))
+  //   .await
+  //   .unwrap();
   let d = buf_writer.write(&body).await.unwrap();
-  info!(
-    "uploading chunk {:?}: with amount {:?} at position {:?} of file {:?}, seeking from {:?}, with size {:?}",
-    idx, d, p, id,seek,f.chunk_size
-  );
+  // todo log
   f.last_chunk += 1;
   f.last_hash = h;
 
