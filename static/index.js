@@ -8,8 +8,8 @@ const dragOverHandler = (e) => {
   e.preventDefault();
 };
 
+
 const uploadHandler = (e) => {
-  console.log("I AM SCREAMING INTO THE VOID");
   uploadChunked(Array.from(e.target.files));
   // upload(Array.from(e.target.files));
   e.target.value = null;
@@ -129,8 +129,17 @@ const upload = async (files) => {
 };
 
 
+
+const getHistory = async () => {
+  for (let [key, value] of Object.entries(localStorage)) {
+    console.log(`${key}: ${value}`);
+  }
+}
+
+
+
+// TODO i think best solution is subfunctionize everything post for i = 0;, because if we have localstorage we just need to do that :3
 const uploadChunked = async (files) => {
-  console.log("chunking my upload");
   if (files.length >= compressCount) {
     createToast("Zipping Files");
     for (let file of files) {
@@ -141,23 +150,55 @@ const uploadChunked = async (files) => {
     files[0].name = "files.zip"
   }
 
-  createToast(`Uploading ${file.name}`);
+  const opfsRoot = await navigator.storage.getDirectory();
   for (let file of files) {
+    createToast(`Uploading ${file.name}`);
+
+    let progress = document.createElement("div");
+    progress.className = "my-1 border-2 border-bg flex relative";
+
+    let progressBar = document.createElement("div");
+    progressBar.className = "absolute bg-bg left-0 inset-y-0";
+    progress.appendChild(progressBar);
+
+    let progressText = document.createElement("span");
+    progressText.className = "px-1 flex-1 min-w-0 truncate z-10";
+    progress.appendChild(progressText);
+
+    let progressRight = document.createElement("span");
+    progressRight.className = "px-1 z-10 hidden md:block";
+    progress.appendChild(progressRight);
+
+    document.getElementById("list").appendChild(progress);
+    document.getElementById("list-title").classList.remove("hidden");
+    //TODO if over size store in OPFS
     let j = await window.fetch("/begin/" + file.name + "/" + file.size)
       .then((res) => {
         if (!res.ok) {
-          console.log("trolled");
+          let err = document.createElement("span");
+          err.innerText = `failed to upload ${file.name} due to ${res.statusText}`
+          progress.replaceWith(err);
         }
         return res.json()
       }).then((j) => {
         return j;
-      }).catch(() => {
+      }).catch((error) => {
         let err = document.createElement("span");
-        err.innerText = 'im sorry everything exploded'
+        err.innerText = `failed to upload ${file.name} due to ${error};`
         progress.replaceWith(err);
       });
 
+    const tf = await opfsRoot.getFileHandle(j.id, { create: true });
+    const writable = await tf.createWritable();
+    //TODO fix streaming file
+    await writable.write(file);
+    await writable.close();
     for (i = 0; i < j.count; i++) {
+      localStorage.setItem(j.id, JSON.stringify({ count: j.count, idx: i, size: j.size, name: file.name, finished: false }));
+      let prog = (i / j.count) * 100;
+      progressBar.style.width = `${prog}%`;
+      progressText.innerHTML = `${Math.round(prog)}% ${file.name}`;
+      progressRight.innerText = `${prettyFileSize(i * j.size, 2)} / ${prettyFileSize(file.size, 2)}`;
       let t = file.slice(i * j.size, (i + 1) * j.size);
       new Promise((resolve, reject) => {
         let req = new XMLHttpRequest();
@@ -167,8 +208,9 @@ const uploadChunked = async (files) => {
         console.log(res);
       }).catch((e) => { });
     }
-    window.fetch(`/end/${j.id}`).then((res) => {
-      let fileName = res.responseText;
+    window.fetch(`/end/${j.id}`).then((res) => { return res.text() }).then((t) => {
+      let fileName = t;
+      console.log(fileName);
       let url = `${location.origin}/${fileName}`;
       createToast(`Uploaded ${fileName}`);
 
@@ -195,11 +237,11 @@ const uploadChunked = async (files) => {
       progress.replaceWith(newLog);
       fileCount++;
       document.getElementById("total").innerText = fileCount;
-
-
+      
+    localStorage.setItem(j.id, JSON.stringify({finished: true, name: fileName}) )
+    opfsRoot.removeEntry(j.id);
 
     }).catch((e) => { console.log("moreexploding") })
-
 
   }
 }
