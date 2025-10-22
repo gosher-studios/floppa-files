@@ -176,7 +176,7 @@ async fn upload(
   }
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Return {
   id: String,
   size: usize,
@@ -225,7 +225,6 @@ async fn begin_upload(
     id: ret_id,
     count: size / chunk_size,
     size: chunk_size,
-
   };
   info!("created file for upload {:?}", r);
   Ok(Json(r).into_response())
@@ -257,12 +256,12 @@ async fn upload_new(
   //   .seek(std::io::SeekFrom::Start(seek as u64))
   //   .await
   //   .unwrap();
+
   let d = buf_writer.write(&body).await.unwrap();
   // todo log
   f.last_chunk += 1;
   f.last_hash = h;
 
-  //TODO Todo
   Ok(().into_response())
 }
 
@@ -273,9 +272,12 @@ async fn end_upload(
   let f = state.clone().temp_files.write().await.get(&id).unwrap();
   let mut buf_writer = f.file.lock().await;
   buf_writer.flush().await.unwrap();
-  let r = (f.file_name).into_response();
+  let r = (f.file_name.clone()).into_response();
+  let path = state.config.file_dir.join(&f.file_name);
   state.clone().temp_files.write().await.remove(&id).unwrap();
-  info!("finished uploading file {:?}",r);
+  info!("finished uploading file {:?}", r);
+  *state.file_count.write().await += 1;
+  let _ = state.path_tx.send(path);
   Ok(r)
 }
 
