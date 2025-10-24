@@ -129,13 +129,40 @@ const upload = async (files) => {
 };
 
 
+let historyGot = false;
 
+//TODO create element should be a separate function, i cannot be fucked currently but i'm very not dry rn
 const getHistory = async () => {
+  if (!historyGot) {
   for (let [key, value] of Object.entries(localStorage)) {
-    console.log(`${key}: ${value}`);
+    console.log(value);
+    let r = JSON.parse(value);
+    if (r.finished) {
+      let historical = document.createElement("div");
+      let url = `${location.origin}/${r.name}`;
+      historical.className ="space-x-2";
+        let qr = document.createElement("span");
+        qr.innerText = "qr";
+        qr.className = "underline cursor-pointer";
+        qr.onclick = () => {
+          showQr(url);
+        };
+        historical.appendChild(qr);
+        let file = document.createElement("span");
+        file.innerText = r.name;
+        file.className = "underline cursor-pointer";
+        file.onclick = () => {
+          navigator.clipboard.writeText(url);
+          createToast("Copied to clipboard");
+        };
+        historical.appendChild(file);
+      document.getElementById("list").appendChild(historical);
+      document.getElementById("list-title").classList.remove("hidden");
+      historyGot = true;
+    }
+  }
   }
 }
-
 
 
 // TODO i think best solution is subfunctionize everything post for i = 0;, because if we have localstorage we just need to do that :3
@@ -237,9 +264,9 @@ const uploadChunked = async (files) => {
       progress.replaceWith(newLog);
       fileCount++;
       document.getElementById("total").innerText = fileCount;
-      
-    localStorage.setItem(j.id, JSON.stringify({finished: true, name: fileName}) )
-    opfsRoot.removeEntry(j.id);
+
+      localStorage.setItem(j.id, JSON.stringify({ finished: true, name: fileName }))
+      opfsRoot.removeEntry(j.id);
 
     }).catch((e) => { console.log("moreexploding") })
 
